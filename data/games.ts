@@ -43,7 +43,7 @@ export const games: Game[] = [
     image: "/games/merge-labs.svg",
     accent: "#34f6c6",
     embedType: "iframe",
-    embedUrl: "about:blank",
+    embedUrl: "/play/merge-labs.html",
     controls: ["Tap or click to drop", "Merge matching items", "Chase high scores"]
   }
 ];
