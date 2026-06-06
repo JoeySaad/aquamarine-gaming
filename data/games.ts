@@ -28,7 +28,7 @@ export const games: Game[] = [
     image: "/games/hyperball.svg",
     accent: "#27e7ff",
     embedType: "iframe",
-    embedUrl: "about:blank",
+    embedUrl: "/play/hyperball.html",
     controls: ["Arrow keys to move", "Space to serve", "First to 7 wins"]
   },
   {
