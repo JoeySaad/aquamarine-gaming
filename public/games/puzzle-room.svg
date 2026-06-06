@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675">
+  <defs>
+    <linearGradient id="room" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#03131e"/>
+      <stop offset=".45" stop-color="#0a4351"/>
+      <stop offset="1" stop-color="#090a16"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1200" height="675" fill="url(#room)"/>
+  <g fill="#07111c" stroke="#19e6ff" stroke-width="5" filter="url(#glow)">
+    <rect x="80" y="230" width="170" height="260" rx="18"/>
+    <rect x="926" y="170" width="160" height="330" rx="18"/>
+    <rect x="408" y="206" width="386" height="240" rx="18"/>
+  </g>
+  <g fill="#102438" stroke="#ff36be" stroke-width="4">
+    <rect x="438" y="238" width="138" height="72" rx="8"/>
+    <rect x="624" y="238" width="138" height="72" rx="8"/>
+    <rect x="438" y="340" width="138" height="72" rx="8"/>
+    <rect x="624" y="340" width="138" height="72" rx="8"/>
+  </g>
+  <g fill="#17e9ff" opacity=".55">
+    <rect x="110" y="274" width="110" height="18" rx="8"/>
+    <rect x="958" y="220" width="90" height="18" rx="8"/>
+    <rect x="958" y="454" width="90" height="18" rx="8"/>
+  </g>
+  <text x="382" y="586" fill="#ffffff" font-family="Arial Black, Arial, sans-serif" font-size="66" filter="url(#glow)">PUZZLE ROOM</text>
+</svg>

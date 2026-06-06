@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="52%" r="72%">
+      <stop offset="0" stop-color="#183f7a"/>
+      <stop offset=".52" stop-color="#111029"/>
+      <stop offset="1" stop-color="#05040b"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1200" height="675" fill="url(#bg)"/>
+  <g opacity=".6" filter="url(#glow)">
+    <circle cx="180" cy="522" r="58" fill="#1ee8ff"/>
+    <circle cx="1016" cy="160" r="42" fill="#ff48db"/>
+    <circle cx="938" cy="520" r="64" fill="#8e42ff"/>
+    <circle cx="252" cy="146" r="36" fill="#ffd43c"/>
+  </g>
+  <text x="66" y="292" fill="#eafaff" font-family="Arial Black, Arial, sans-serif" font-size="170" font-weight="900" stroke="#20dfff" stroke-width="10">MERGE</text>
+  <text x="254" y="472" fill="#ffb331" font-family="Arial Black, Arial, sans-serif" font-size="170" font-weight="900" stroke="#ff7b1a" stroke-width="9">LABS</text>
+  <g fill="none" stroke="#ff45df" stroke-width="8" opacity=".9">
+    <path d="M100 560c160 42 322 28 486-40s332-82 516-8"/>
+    <path d="M120 104c220-45 406-14 558 72s288 94 422 26"/>
+  </g>
+</svg>
