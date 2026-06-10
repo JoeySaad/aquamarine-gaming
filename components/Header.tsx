@@ -7,7 +7,6 @@ export function Header() {
       <BrandLogo />
       <nav className="nav-links" aria-label="Primary navigation">
         <Link href="/games">Library</Link>
-        <Link href="/#feedback">Feedback</Link>
       </nav>
     </header>
   );

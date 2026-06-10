@@ -56,13 +56,6 @@ export default function GamePage({ params }: GamePageProps) {
             ))}
           </ul>
         </div>
-        <div>
-          <p className="section-label">Embed Type</p>
-          <p className="detail-copy">
-            This game is configured as a <strong>{game.embedType}</strong> game
-            in local data.
-          </p>
-        </div>
       </section>
     </div>
   );

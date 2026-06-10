@@ -15,9 +15,8 @@ export default function PrivacyPage() {
       </p>
       <h2>Information collection</h2>
       <p>
-        The feedback form is a visual placeholder and does not submit or store
-        messages yet. Embedded games may have their own behavior once you connect
-        real game builds.
+        Embedded games may have their own behavior once you connect real game
+        builds. Review any game provider requirements before publishing.
       </p>
       <h2>Future updates</h2>
       <p>

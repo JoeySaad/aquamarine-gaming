@@ -38,25 +38,6 @@ export default function Home() {
           <GameCard game={game} key={game.slug} />
         ))}
       </section>
-
-      <section className="info-grid">
-        <div className="info-panel">
-          <p className="section-label">Embeds</p>
-          <h2>Unity WebGL and iframe friendly</h2>
-          <p>
-            Each game page has a responsive embed frame. Use local data to point
-            entries at Unity builds, HTML5 games, or hosted iframe experiences.
-          </p>
-        </div>
-        <form className="feedback-panel" id="feedback">
-          <p className="section-label purple">Feedback</p>
-          <h2>Contact placeholder</h2>
-          <input aria-label="Name" placeholder="Name" type="text" />
-          <input aria-label="Email" placeholder="Email" type="email" />
-          <textarea aria-label="Message" placeholder="Message" rows={4} />
-          <button type="button">Send later</button>
-        </form>
-      </section>
     </>
   );
 }
