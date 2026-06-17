@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aquamarine Gaming</title>
+  <style>
+    :root {
+      --cyan: #22d9ff;
+      --text: #f5fbff;
+      --muted: rgba(232, 244, 255, .82);
+      --panel: rgba(2, 20, 45, .68);
+      --line: rgba(34, 202, 255, .86);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        linear-gradient(180deg, rgba(0, 8, 20, .08), rgba(0, 6, 18, .34)),
+        url("assets/site-background.png") center top / cover fixed no-repeat,
+        #020916;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      pointer-events: none;
+      position: fixed;
+      z-index: -1;
+      background:
+        radial-gradient(circle at 50% 16%, rgba(31, 213, 255, .12), transparent 22rem),
+        linear-gradient(180deg, rgba(0, 0, 0, .15), rgba(0, 0, 0, .05) 45%, rgba(0, 0, 0, .3));
+      inset: 0;
+    }
+
+    a, button { font: inherit; }
+    a { color: inherit; text-decoration: none; }
+
+    header {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      padding: 28px clamp(28px, 4.5vw, 76px);
+      position: relative;
+      z-index: 2;
+    }
+
+    .brand {
+      align-items: center;
+      display: flex;
+      width: min(520px, 46vw);
+    }
+
+    .brand-mark {
+      display: block;
+      width: 100%;
+    }
+
+    .brand-mark img {
+      display: block;
+      filter: drop-shadow(0 0 16px rgba(0, 195, 255, .9));
+      height: auto;
+      object-fit: contain;
+      width: 100%;
+    }
+
+    nav {
+      display: flex;
+      gap: clamp(24px, 4vw, 64px);
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    nav a:first-child,
+    nav a:hover {
+      color: #36cfff;
+      text-shadow: 0 0 18px rgba(0,195,255,.9);
+    }
+
+    .hero {
+      align-items: flex-start;
+      display: flex;
+      flex-direction: column;
+      min-height: 470px;
+      padding: clamp(105px, 14vh, 155px) 20px 80px clamp(42px, 14.5vw, 245px);
+    }
+
+    h1 {
+      font-size: clamp(4rem, 5.4vw, 5.6rem);
+      line-height: .95;
+      margin: 0;
+      text-transform: uppercase;
+      text-shadow: 0 2px 18px rgba(0,0,0,.55);
+    }
+
+    h1 span {
+      background: linear-gradient(90deg, #14dfff 0%, #1097ff 48%, #7f43ff 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero p {
+      color: var(--muted);
+      font-size: clamp(1.35rem, 1.65vw, 1.7rem);
+      line-height: 1.45;
+      margin: 36px 0 34px;
+      max-width: 620px;
+    }
+
+    .cta {
+      background: rgba(7, 93, 150, .36);
+      border: 2px solid var(--cyan);
+      border-radius: 7px;
+      box-shadow: inset 0 0 22px rgba(55,223,255,.38), 0 0 22px rgba(0,200,255,.85), 0 0 58px rgba(0,128,255,.38);
+      color: #eafaff;
+      display: inline-flex;
+      font-size: 22px;
+      font-weight: 900;
+      gap: 16px;
+      letter-spacing: .13em;
+      min-height: 64px;
+      padding: 17px 34px;
+      text-transform: uppercase;
+    }
+
+    .featured-band {
+      align-items: center;
+      display: grid;
+      gap: 34px;
+      grid-template-columns: 1fr auto 1fr;
+      margin: 0 auto 32px;
+      max-width: 930px;
+      padding: 0 18px;
+    }
+
+    .featured-band span {
+      background: linear-gradient(90deg, transparent, rgba(26,195,255,.82));
+      height: 2px;
+    }
+
+    .featured-band span:last-child {
+      background: linear-gradient(90deg, rgba(26,195,255,.82), transparent);
+    }
+
+    .featured-band p {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: .46em;
+      margin: 0;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .grid {
+      align-items: stretch;
+      display: grid;
+      gap: 30px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin: 0 auto 52px;
+      max-width: 1290px;
+      padding: 0 28px;
+    }
+
+    .library {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 26px;
+      margin-bottom: 80px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(3, 19, 43, .72), rgba(2, 13, 31, .9));
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow:
+        inset 0 0 42px rgba(0,173,255,.13),
+        0 0 24px rgba(0,123,255,.16);
+      cursor: pointer;
+      display: grid;
+      grid-template-rows: 210px 140px;
+      min-height: 350px;
+      overflow: hidden;
+      padding: 0;
+      text-align: left;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(100, 230, 255, 1);
+      box-shadow:
+        inset 0 0 48px rgba(0,173,255,.18),
+        0 0 34px rgba(0,190,255,.26);
+      transform: translateY(-3px);
+    }
+
+    .card > img {
+      background: #020817;
+      display: block;
+      height: 100%;
+      object-fit: fill;
+      object-position: center;
+      padding: 0;
+      width: 100%;
+    }
+
+    .logo-penalty,
+    .logo-starline,
+    .logo-hyperball,
+    .logo-merge {
+      background-color: #020817;
+    }
+
+    .logo-penalty {
+      object-fit: fill;
+    }
+
+    .logo-starline {
+      object-fit: fill;
+    }
+
+    .logo-hyperball {
+      object-fit: fill;
+      object-position: center;
+    }
+
+    .logo-merge {
+      object-fit: cover;
+      object-position: center center;
+    }
+
+    .featured .card {
+      grid-template-rows: 225px 143px;
+      min-height: 368px;
+    }
+
+    .featured .card > img {
+      height: 100%;
+      padding: 0;
+    }
+
+    .card-body {
+      align-items: center;
+      background:
+        linear-gradient(180deg, rgba(3, 42, 70, .72), rgba(1, 11, 30, .92));
+      border-top: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 0;
+      padding: 28px 24px 30px;
+      position: relative;
+      text-align: center;
+    }
+
+    .card h2 {
+      color: #dff7ff;
+      font-size: 19px;
+      letter-spacing: .28em;
+      margin: 0 0 34px;
+      position: relative;
+      text-transform: uppercase;
+    }
+
+    .card h2::after {
+      background:
+        radial-gradient(circle, #45eaff 0 3px, transparent 4px),
+        linear-gradient(90deg, transparent, rgba(58, 225, 255, .9), transparent);
+      bottom: -20px;
+      content: "";
+      height: 8px;
+      left: 50%;
+      position: absolute;
+      transform: translateX(-50%);
+      width: 150px;
+    }
+
+    .card p {
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.45;
+      margin: 0;
+      max-width: 310px;
+    }
+
+    .library .card {
+      grid-template-rows: 150px 150px;
+      min-height: 300px;
+    }
+
+    .library .card > img {
+      height: 100%;
+      padding: 0;
+    }
+
+    .library .card-body {
+      min-height: 0;
+      padding: 26px 22px 28px;
+    }
+
+    .library .card h2 {
+      font-size: 17px;
+      letter-spacing: .26em;
+      margin-bottom: 32px;
+    }
+
+    .library .card p {
+      font-size: 17px;
+      max-width: 240px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      letter-spacing: .35em;
+      margin: 72px auto 24px;
+      max-width: 1280px;
+      padding: 0 24px;
+      text-transform: uppercase;
+    }
+
+    .modal {
+      background: rgba(0, 6, 18, .88);
+      display: none;
+      inset: 0;
+      padding: 24px;
+      position: fixed;
+      z-index: 20;
+    }
+
+    .modal.open { display: flex; flex-direction: column; }
+
+    .modal-bar {
+      align-items: center;
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      padding-bottom: 14px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    .modal-actions { display: flex; gap: 10px; }
+
+    .modal button {
+      background: rgba(7, 93, 150, .56);
+      border: 1px solid var(--cyan);
+      border-radius: 7px;
+      color: #eafaff;
+      cursor: pointer;
+      font-weight: 800;
+      min-height: 42px;
+      padding: 0 16px;
+      text-transform: uppercase;
+    }
+
+    iframe {
+      background: #020916;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      flex: 1;
+      width: 100%;
+    }
+
+    @media (max-width: 900px) {
+      header { align-items: flex-start; flex-direction: column; gap: 20px; }
+      nav { flex-wrap: wrap; gap: 18px; }
+      .hero { min-height: auto; padding: 72px 22px; }
+      .grid, .library { grid-template-columns: 1fr; }
+      .featured-band { gap: 18px; }
+      .featured-band p { font-size: 14px; letter-spacing: .28em; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="#home" aria-label="Aquamarine Gaming home">
+      <span class="brand-mark"><img src="assets/title-logo-transparent.png" alt="Aquamarine Gaming"></span>
+    </a>
+    <nav aria-label="Primary">
+      <a href="#home">Home</a>
+      <a href="#games">Games</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <main id="home">
+    <section class="hero">
+      <h1>Play <span>Instantly</span></h1>
+      <p>Jump into premium browser games.<br>No downloads, no installs, just pure fun.</p>
+      <a class="cta" href="#games"><span>&gt;</span> Browse Games</a>
+    </section>
+
+    <section class="featured-band" aria-label="Featured games">
+      <span></span>
+      <p>Featured Games</p>
+      <span></span>
+    </section>
+
+    <section class="grid featured">
+      <button class="card" data-game="penalty-rush">
+        <img class="logo-penalty" src="assets/penalty-rush-logo.png" alt="">
+        <div class="card-body"><h2>Penalty Rush</h2><p>Arcade soccer shootout tournament.</p></div>
+      </button>
+      <button class="card" data-game="starline-run">
+        <img class="logo-starline" src="assets/starline-run-logo.png" alt="">
+        <div class="card-body"><h2>Starline Run</h2><p>Neon action runner for fast reflexes.</p></div>
+      </button>
+      <button class="card" data-game="hyperball">
+        <img class="logo-hyperball" src="assets/hyperball-logo.png" alt="">
+        <div class="card-body"><h2>HyperBall</h2><p>Fast neon sports rallies.</p></div>
+      </button>
+    </section>
+
+    <h2 class="section-title" id="games">All Games</h2>
+    <section class="grid library">
+      <button class="card" data-game="penalty-rush">
+        <img class="logo-penalty" src="assets/penalty-rush-logo.png" alt="">
+        <div class="card-body"><h2>Penalty Rush</h2><p>Pick a country and chase the shootout cup.</p></div>
+      </button>
+      <button class="card" data-game="starline-run">
+        <img class="logo-starline" src="assets/starline-run-logo.png" alt="">
+        <div class="card-body"><h2>Starline Run</h2><p>Run the neon starline and survive.</p></div>
+      </button>
+      <button class="card" data-game="hyperball">
+        <img class="logo-hyperball" src="assets/hyperball-logo.png" alt="">
+        <div class="card-body"><h2>HyperBall</h2><p>Classic arcade sports, recharged.</p></div>
+      </button>
+      <button class="card" data-game="merge-labs">
+        <img class="logo-merge" src="assets/merge-labs-logo.png" alt="">
+        <div class="card-body"><h2>Merge Labs</h2><p>Drop, merge, and discover new objects.</p></div>
+      </button>
+    </section>
+
+    <section class="section-title" id="about">Premium browser arcade. No accounts, no payments, no analytics.</section>
+    <section class="section-title" id="contact">Contact: Aquamarine Gaming</section>
+  </main>
+
+  <section class="modal" id="gameModal" aria-label="Game player">
+    <div class="modal-bar">
+      <div class="modal-title" id="modalTitle">Game</div>
+      <div class="modal-actions">
+        <button id="fullButton" type="button">Fullscreen</button>
+        <button id="closeButton" type="button">Close</button>
+      </div>
+    </div>
+    <iframe id="gameFrame" title="Game player" allow="fullscreen; gamepad; autoplay"></iframe>
+  </section>
+
+  <script>
+    const games = {
+      "penalty-rush": { title: "Penalty Rush", url: "play/penalty-rush/index.html" },
+      "starline-run": { title: "Starline Run", url: "play/starline-run/index.html" },
+      "hyperball": { title: "HyperBall", url: "play/hyperball/index.html" },
+      "merge-labs": { title: "Merge Labs", url: "play/merge-labs/index.html" }
+    };
+
+    const modal = document.getElementById("gameModal");
+    const frame = document.getElementById("gameFrame");
+    const title = document.getElementById("modalTitle");
+
+    document.querySelectorAll("[data-game]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const game = games[button.dataset.game];
+        title.textContent = game.title;
+        frame.src = game.url;
+        modal.classList.add("open");
+        document.body.style.overflow = "hidden";
+      });
+    });
+
+    document.getElementById("closeButton").addEventListener("click", async () => {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen().catch(() => {});
+      }
+      modal.classList.remove("open");
+      frame.src = "about:blank";
+      document.body.style.overflow = "";
+    });
+
+    document.getElementById("fullButton").addEventListener("click", async () => {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        return;
+      }
+      await modal.requestFullscreen();
+    });
+  </script>
+</body>
+</html>
