@@ -1,25 +1,19 @@
 import type { Metadata } from "next";
-import { Footer } from "../components/Footer";
-import { Header } from "../components/Header";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Aquamarine Gaming",
-  description: "A clean arcade portal for instant browser games."
+  description: "Play Aquamarine Gaming titles online.",
 };
 
 export default function RootLayout({
-  children
-}: Readonly<{
+  children,
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body>
-        <Header />
-        <main>{children}</main>
-        <Footer />
-      </body>
+      <body style={{ margin: 0, padding: 0 }}>{children}</body>
     </html>
   );
 }
