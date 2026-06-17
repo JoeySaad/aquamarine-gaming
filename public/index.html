@@ -464,8 +464,8 @@
     const games = {
       "penalty-rush": { title: "Penalty Rush", url: "play/penalty-rush/index.html" },
       "starline-run": { title: "Starline Run", url: "play/starline-run/index.html" },
-      "hyperball": { title: "HyperBall", url: "about:blank" },
-      "merge-labs": { title: "Merge Labs", url: "about:blank" }
+      "hyperball": { title: "HyperBall", url: "play/hyperball/index.html" },
+      "merge-labs": { title: "Merge Labs", url: "play/merge-labs/index.html" }
     };
 
     const modal = document.getElementById("gameModal");
@@ -478,12 +478,17 @@
         title.textContent = game.title;
         frame.src = game.url;
         modal.classList.add("open");
+        document.body.style.overflow = "hidden";
       });
     });
 
-    document.getElementById("closeButton").addEventListener("click", () => {
+    document.getElementById("closeButton").addEventListener("click", async () => {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen().catch(() => {});
+      }
       modal.classList.remove("open");
       frame.src = "about:blank";
+      document.body.style.overflow = "";
     });
 
     document.getElementById("fullButton").addEventListener("click", async () => {
