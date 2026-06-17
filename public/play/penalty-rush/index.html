@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Penalty Rush</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell" aria-label="Penalty Rush game">
+    <section id="menuScreen" class="screen menu-screen active">
+      <div class="menu-stadium" aria-hidden="true">
+        <div class="menu-light left"></div>
+        <div class="menu-light right"></div>
+        <div class="menu-crowd"></div>
+        <div class="menu-led left">LET'S GO!</div>
+        <div class="menu-led right">LET'S GO!</div>
+        <div class="menu-goal"></div>
+        <div class="menu-field-lines"></div>
+        <div class="menu-ball"></div>
+      </div>
+      <div class="brand-block menu-brand">
+        <img class="menu-logo-image" src="assets/penalty-rush-logo-clean.png" alt="Penalty Rush Arcade Soccer">
+        <p class="subtitle">Pick a country. Win the shootout cup.</p>
+      </div>
+
+      <div class="best-row" aria-live="polite">
+        <span>Best run</span>
+        <strong id="menuBest">Round 1</strong>
+      </div>
+
+      <div class="difficulty-picker" aria-label="Difficulty">
+        <span>Difficulty</span>
+        <button class="difficulty-button selected" data-difficulty="easy" type="button">Easy</button>
+        <button class="difficulty-button" data-difficulty="medium" type="button">Medium</button>
+        <button class="difficulty-button" data-difficulty="hard" type="button">Hard</button>
+      </div>
+
+      <div class="menu-actions">
+        <button id="playButton" class="primary-button menu-start"><span class="button-ball" aria-hidden="true"></span>Start <small>Tournament</small></button>
+        <button id="howToButton" class="secondary-button menu-secondary"><span aria-hidden="true">▣</span>How to <small>Play</small></button>
+        <button id="settingsButton" class="secondary-button menu-secondary"><span aria-hidden="true">⚙</span>Settings</button>
+      </div>
+
+      <div class="menu-utility" aria-label="Additional menu options">
+        <button id="classicButton" type="button" class="utility-button">🎮 Classic Mode</button>
+        <button id="achievementsButton" type="button" class="utility-button">🏆 Achievements</button>
+      </div>
+    </section>
+
+    <section id="countryScreen" class="screen country-screen" aria-label="Choose your country">
+      <div class="brand-block">
+        <p class="eyebrow">Choose Your Country</p>
+        <h2>Road to the Cup</h2>
+      </div>
+      <div id="countryGrid" class="country-grid"></div>
+      <div class="menu-actions">
+        <button id="backToMenuButton" class="secondary-button">Main Menu</button>
+      </div>
+    </section>
+
+    <section id="progressScreen" class="screen overlay-screen" aria-label="Tournament progress">
+      <div class="panel progress-panel">
+        <p id="progressEyebrow" class="eyebrow">Tournament</p>
+        <h2 id="progressTitle">Next Match</h2>
+        <div id="progressBracket" class="progress-bracket"></div>
+        <p id="progressText" class="progress-text"></p>
+        <div class="panel-actions">
+          <button id="continueTournamentButton" class="primary-button">Continue</button>
+          <button id="progressMenuButton" class="secondary-button">Main Menu</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="gameScreen" class="screen game-screen" aria-label="Game field">
+      <button id="pauseButton" class="pause-button" type="button">Pause</button>
+      <div class="hud tournament-hud">
+        <div class="team-card" id="playerTeamCard">
+          <span>Your Country</span>
+          <strong id="playerTeamLabel">-</strong>
+          <div id="playerDots" class="penalty-dots" aria-label="Your penalty results"></div>
+        </div>
+        <div class="match-card">
+          <span id="roundLabel">Quarterfinal</span>
+          <strong id="scoreLabel">0 - 0</strong>
+          <em id="turnLabel">Shoot</em>
+        </div>
+        <div class="team-card" id="opponentTeamCard">
+          <span>Opponent</span>
+          <strong id="opponentTeamLabel">-</strong>
+          <div id="opponentDots" class="penalty-dots" aria-label="Opponent penalty results"></div>
+        </div>
+      </div>
+
+      <div id="field" class="field" tabindex="0" aria-label="Penalty field. Aim with the pointer. Hold and release to shoot, or move the gloves and dive during save turns.">
+        <div class="stadium-lights"></div>
+        <div id="goalFlash" class="goal-flash" aria-hidden="true"></div>
+        <div class="goal-wrap" id="goalWrap">
+          <div class="goal-frame">
+            <div class="net"></div>
+            <div id="keeper" class="keeper" aria-hidden="true">
+              <div class="keeper-head"></div>
+              <div class="keeper-body"></div>
+              <div class="keeper-arm left"></div>
+              <div class="keeper-arm right"></div>
+              <div class="keeper-leg left"></div>
+              <div class="keeper-leg right"></div>
+            </div>
+            <div id="aimReticle" class="aim-reticle" aria-hidden="true"></div>
+            <div id="gloves" class="gloves" aria-hidden="true">
+              <span></span><span></span>
+            </div>
+          </div>
+        </div>
+
+        <div id="feedback" class="feedback" aria-live="assertive"></div>
+        <div id="crowdBanner" class="crowd-banner" aria-live="polite">Crowd is buzzing</div>
+        <div id="particles" class="particles" aria-hidden="true"></div>
+        <div id="ballTrail" class="ball-trail" aria-hidden="true"></div>
+
+        <div class="penalty-mark"></div>
+        <div id="ballShadow" class="ball-shadow" aria-hidden="true"></div>
+        <button id="ball" class="ball" aria-label="Click or tap to shoot">
+          <span></span>
+        </button>
+
+        <div class="power-panel shot-panel" aria-label="Shot power">
+          <span id="shotTypeLabel">Hold to shoot</span>
+          <div class="power-track">
+            <div id="powerFill" class="power-fill"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="pauseScreen" class="screen overlay-screen pause-screen" aria-label="Paused">
+      <div class="panel pause-panel">
+        <p class="eyebrow">Paused</p>
+        <h2>Take a breather</h2>
+        <div class="panel-actions">
+          <button id="resumeGameButton" class="primary-button">Resume</button>
+          <button id="pauseMenuButton" class="secondary-button">Main Menu</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="gameOverScreen" class="screen overlay-screen" aria-label="Game over">
+      <div class="panel">
+        <p id="gameOverEyebrow" class="eyebrow">Full Time</p>
+        <h2 id="gameOverTitle">Tournament Over</h2>
+        <div class="stats-grid">
+          <div><span>Your Country</span><strong id="finalScore">-</strong></div>
+          <div><span>Reached</span><strong id="finalBest">Round 1</strong></div>
+          <div><span>Match Score</span><strong id="finalGoals">0-0</strong></div>
+          <div><span>Kicks Taken</span><strong id="finalShots">0</strong></div>
+          <div><span>Saves</span><strong id="finalAccuracy">0</strong></div>
+          <div><span>Result</span><strong id="finalMode">Eliminated</strong></div>
+        </div>
+        <div class="panel-actions">
+          <button id="playAgainButton" class="primary-button">Restart Tournament</button>
+          <button id="mainMenuButton" class="secondary-button">Main Menu</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="howToScreen" class="screen overlay-screen" aria-label="How to play">
+      <div class="panel">
+        <p class="eyebrow">How to Play</p>
+        <h2>Penalty Rush</h2>
+        <ul class="help-list">
+          <li>Tournament: pick a country, alternate shooting and saving, and win best-of-5 shootouts.</li>
+          <li>Advance through the quarterfinal, semifinal, and final to win the cup.</li>
+          <li>Shooting: move the crosshair, hold click to charge power, and release to shoot.</li>
+          <li>Medium power is most accurate. High power is stronger but riskier.</li>
+          <li>Saving: move the gloves, then click or press space to dive after the shot starts.</li>
+          <li>Classic: score as many penalties as possible before 3 fails.</li>
+        </ul>
+        <button id="closeHowToButton" class="primary-button">Back</button>
+      </div>
+    </section>
+
+    <section id="achievementsScreen" class="screen overlay-screen" aria-label="Achievements">
+      <div class="panel achievements-panel">
+        <p class="eyebrow">Achievements</p>
+        <h2>Trophy Room</h2>
+        <div id="achievementsList" class="achievements-list"></div>
+        <button id="closeAchievementsButton" class="primary-button">Back</button>
+      </div>
+    </section>
+
+    <section id="settingsScreen" class="screen overlay-screen" aria-label="Settings">
+      <div class="panel">
+        <p class="eyebrow">Settings</p>
+        <h2>Game Options</h2>
+        <label class="toggle-row">
+          <span>Sound</span>
+          <input id="soundToggle" type="checkbox">
+        </label>
+        <label class="slider-row">
+          <span>Music volume</span>
+          <input id="musicVolumeSlider" type="range" min="0" max="100" value="35">
+        </label>
+        <label class="slider-row">
+          <span>SFX volume</span>
+          <input id="sfxVolumeSlider" type="range" min="0" max="100" value="70">
+        </label>
+        <button id="fullscreenButton" class="secondary-button">Toggle Fullscreen</button>
+        <button id="resetScoresButton" class="danger-button">Reset Progress</button>
+        <button id="closeSettingsButton" class="primary-button">Back</button>
+      </div>
+    </section>
+    <div id="achievementToast" class="achievement-toast" aria-live="polite"></div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

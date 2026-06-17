@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675">
+  <defs>
+    <linearGradient id="space" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#020716"/>
+      <stop offset=".55" stop-color="#092a5a"/>
+      <stop offset="1" stop-color="#07130d"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1200" height="675" fill="url(#space)"/>
+  <g stroke="#53ff9f" stroke-width="5" filter="url(#glow)">
+    <path d="M120 610L530 72M360 620L584 70M600 630L650 70M840 620L716 70M1080 610L770 72" opacity=".75"/>
+    <path d="M130 535h940M208 430h788M286 330h622M368 238h464" opacity=".45"/>
+  </g>
+  <path d="M600 250l58 152-58 56-58-56z" fill="#dfffea" stroke="#53ff9f" stroke-width="8" filter="url(#glow)"/>
+  <text x="600" y="168" text-anchor="middle" fill="#ffffff" font-family="Arial Black, Arial, sans-serif" font-size="82">STARLINE</text>
+  <text x="600" y="548" text-anchor="middle" fill="#70ff55" font-family="Arial Black, Arial, sans-serif" font-size="88" filter="url(#glow)">RUN</text>
+</svg>

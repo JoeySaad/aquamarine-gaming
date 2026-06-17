@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="55%" r="55%">
+      <stop offset="0" stop-color="#10255a"/>
+      <stop offset=".58" stop-color="#050713"/>
+      <stop offset="1" stop-color="#010206"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="1200" height="675" fill="url(#g)"/>
+  <g opacity=".35" stroke="#2846ff">
+    <path d="M0 510h1200M0 555h1200M0 600h1200M260 0v675M600 0v675M940 0v675"/>
+  </g>
+  <g filter="url(#glow)" fill="none" stroke-linecap="round">
+    <path d="M78 170v335" stroke="#1c8fff" stroke-width="20"/>
+    <path d="M1122 170v335" stroke="#ff2b3d" stroke-width="20"/>
+    <circle cx="600" cy="334" r="206" stroke="#157cff" stroke-width="9"/>
+    <path d="M600 128a206 206 0 0 1 188 122" stroke="#ff2b54" stroke-width="9"/>
+    <path d="M600 540a206 206 0 0 1-188-122" stroke="#1f8eff" stroke-width="9"/>
+    <path d="M625 290c84-46 144-92 233-112" stroke="#ff244e" stroke-width="5" opacity=".75"/>
+    <path d="M370 395c73 5 161-13 252-90" stroke="#1f8eff" stroke-width="5" opacity=".75"/>
+  </g>
+  <circle cx="684" cy="267" r="43" fill="#fff"/>
+  <circle cx="684" cy="267" r="43" fill="#fffb" filter="url(#glow)"/>
+  <text x="220" y="390" fill="#2188ff" font-family="Georgia, serif" font-size="112" font-weight="900" filter="url(#glow)">Hyper</text>
+  <text x="620" y="390" fill="#ff3348" font-family="Georgia, serif" font-size="112" font-weight="900" filter="url(#glow)">Ball</text>
+</svg>

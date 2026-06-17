@@ -1,0 +1,4468 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Starline Run</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --cyan: #53ff9f;
+      --blue: #123b88;
+      --pink: #9dff60;
+      --orange: #78ff3f;
+      --green: #7dff6a;
+      --panel: rgba(2, 10, 30, .48);
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #020716;
+      font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+      user-select: none;
+    }
+
+    #game {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: none;
+    }
+
+    body.menu-page #game,
+    body.menu-page .hud,
+    body.menu-page #reticle,
+    body.menu-page #vignette {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    #vignette {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 50% 45%, transparent 0 46%, rgba(0, 0, 0, .34) 100%),
+        linear-gradient(180deg, rgba(2, 8, 25, .18), rgba(2, 4, 14, .38));
+      mix-blend-mode: screen;
+    }
+
+    .hud {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      color: white;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      text-shadow: 0 0 12px rgba(53, 246, 255, .35);
+    }
+
+    .hud-block {
+      position: absolute;
+      padding: 18px 22px;
+      border-radius: 8px;
+      background: linear-gradient(120deg, rgba(3, 14, 43, .42), rgba(0, 20, 45, .14));
+      backdrop-filter: blur(4px);
+    }
+
+    .top-left { top: 20px; left: 24px; min-width: 250px; }
+    .top-center { top: 18px; left: 50%; transform: translateX(-50%); text-align: center; min-width: 330px; }
+    .top-right { top: 20px; right: 24px; min-width: 300px; text-align: right; }
+    .bottom-left { left: 24px; bottom: 18px; background: transparent; padding: 0; }
+    .bottom-right { right: 24px; bottom: 22px; min-width: 300px; text-align: right; }
+
+    .label {
+      color: var(--cyan);
+      font-size: clamp(14px, 2vw, 28px);
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .big {
+      font-size: clamp(34px, 5vw, 76px);
+      font-weight: 900;
+      line-height: .95;
+      color: #fff;
+      text-shadow: 0 0 14px rgba(255, 255, 255, .28);
+    }
+
+    .medium {
+      font-size: clamp(20px, 3.8vw, 48px);
+      font-weight: 900;
+      line-height: 1;
+      color: #fff;
+    }
+
+    .yellow { color: #d8ff56; }
+    .cyan { color: var(--cyan); }
+
+    .health-row {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 8px 0 14px;
+    }
+
+    .heart {
+      width: clamp(28px, 4vw, 50px);
+      height: clamp(28px, 4vw, 50px);
+      border: 3px solid rgba(53, 246, 255, .75);
+      border-radius: 7px;
+      box-shadow: inset 0 0 16px rgba(53, 246, 255, .3), 0 0 12px rgba(53, 246, 255, .25);
+      background: rgba(8, 32, 70, .55);
+    }
+
+    .heart.full {
+      background: linear-gradient(180deg, #7dff6a, #27d868);
+      box-shadow: 0 0 16px rgba(125, 255, 106, .55);
+    }
+
+    .energy-shell,
+    .speed-shell {
+      height: 28px;
+      border: 3px solid var(--green);
+      border-radius: 7px;
+      padding: 3px;
+      box-shadow: 0 0 12px rgba(125, 255, 106, .28);
+      background: rgba(7, 13, 32, .72);
+    }
+
+    .energy-fill {
+      height: 100%;
+      width: 88%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #38f58c, #d8ff56);
+    }
+
+    .speed-shell {
+      border-color: rgba(53, 246, 255, .75);
+      height: 42px;
+      display: flex;
+      gap: 4px;
+      justify-content: flex-end;
+      align-items: end;
+      padding: 5px;
+    }
+
+    .speed-bar {
+      width: 10px;
+      height: 22px;
+      border-radius: 2px;
+      background: rgba(75, 133, 180, .35);
+    }
+
+    .speed-bar.on:nth-child(-n+4) { background: #45ff83; }
+    .speed-bar.on:nth-child(n+5):nth-child(-n+9) { background: #9dff60; }
+    .speed-bar.on:nth-child(n+10) { background: #53ff9f; }
+
+    .active-powerups {
+      display: grid;
+      justify-content: end;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .power-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 7px;
+      padding: 5px 8px;
+      border: 1px solid rgba(125, 255, 106, .46);
+      border-radius: 7px;
+      background: rgba(2, 14, 34, .74);
+      color: #eafff0;
+      font: 900 12px/1 "Segoe UI", system-ui, sans-serif;
+      box-shadow: 0 0 10px rgba(83, 255, 159, .14);
+    }
+
+    .power-chip::before {
+      content: "";
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--chip, #7dff6a);
+      box-shadow: 0 0 10px var(--chip, #7dff6a);
+    }
+
+    .crystal-row {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 9px;
+      margin: 8px 0 18px;
+    }
+
+    .gem {
+      width: 22px;
+      height: 34px;
+      clip-path: polygon(50% 0, 88% 28%, 76% 74%, 50% 100%, 24% 74%, 12% 28%);
+      background: linear-gradient(135deg, #0b6f2f, #29ff46 45%, #d9ffd7 50%, #19d834);
+      filter: drop-shadow(0 0 9px #29ff46);
+    }
+
+    .mobile-pad {
+      display: grid;
+      grid-template-columns: repeat(3, clamp(54px, 6vw, 76px));
+      grid-template-rows: repeat(2, clamp(54px, 6vw, 76px));
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .dir-button {
+      border: 3px solid rgba(53, 246, 255, .75);
+      border-radius: 8px;
+      background: rgba(2, 16, 45, .55);
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 0 18px rgba(53, 246, 255, .16), 0 0 16px rgba(53, 246, 255, .2);
+      color: var(--cyan);
+      font-size: clamp(24px, 3.5vw, 40px);
+      font-weight: 900;
+      position: relative;
+      touch-action: manipulation;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .dir-button:active {
+      transform: scale(.96);
+      background: rgba(42, 255, 128, .18);
+    }
+
+    .dir-up { grid-column: 2; grid-row: 1; }
+    .dir-left { grid-column: 1; grid-row: 2; }
+    .dir-down { grid-column: 2; grid-row: 2; }
+    .dir-right { grid-column: 3; grid-row: 2; }
+
+    #reticle {
+      position: fixed;
+      left: 50%;
+      top: 52%;
+      width: 92px;
+      height: 92px;
+      margin: -46px 0 0 -46px;
+      pointer-events: none;
+      border: 5px solid rgba(122, 255, 113, .8);
+      border-radius: 50%;
+      box-shadow: 0 0 18px rgba(115, 255, 113, .45), inset 0 0 18px rgba(115, 255, 113, .2);
+    }
+
+    #reticle::before,
+    #reticle::after {
+      content: "";
+      position: absolute;
+      background: rgba(122, 255, 113, .9);
+      box-shadow: 0 0 8px rgba(122, 255, 113, .8);
+    }
+
+    #reticle::before {
+      width: 70%;
+      height: 3px;
+      left: 15%;
+      top: calc(50% - 1.5px);
+    }
+
+    #reticle::after {
+      width: 3px;
+      height: 70%;
+      left: calc(50% - 1.5px);
+      top: 15%;
+    }
+
+    #reticle .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(122, 255, 113, .95);
+      position: absolute;
+      left: calc(50% - 4px);
+      top: calc(50% - 4px);
+      box-shadow: 0 0 8px rgba(122, 255, 113, .9);
+    }
+
+    #message {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: min(760px, calc(100vw - 36px));
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+      padding: 26px;
+      border-radius: 8px;
+      border: 2px solid rgba(53, 246, 255, .55);
+      background:
+        linear-gradient(180deg, rgba(6, 20, 56, .9), rgba(2, 8, 25, .82)),
+        radial-gradient(circle at 50% 0, rgba(83, 255, 159, .18), transparent 45%);
+      color: white;
+      text-align: center;
+      box-shadow: 0 0 46px rgba(83, 255, 159, .25);
+      pointer-events: auto;
+    }
+
+    #message.menu-page {
+      left: 0;
+      top: 0;
+      transform: none;
+      width: 100vw;
+      height: 100vh;
+      max-height: none;
+      overflow: auto;
+      border: 0;
+      border-radius: 0;
+      padding: clamp(26px, 5vw, 58px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background:
+        radial-gradient(circle at 14% 48%, rgba(16, 86, 190, .24), transparent 28%),
+        radial-gradient(circle at 80% 24%, rgba(77, 119, 255, .12), transparent 24%),
+        linear-gradient(0deg, rgba(2, 8, 18, .94), transparent 42%),
+        linear-gradient(135deg, #020817 0%, #06183d 52%, #020713 100%);
+      box-shadow: none;
+    }
+
+    #message.menu-page::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(178deg, transparent 0 70%, rgba(20, 255, 84, .1) 70.4%, transparent 72%, rgba(29, 162, 255, .1) 73%, transparent 76%),
+        linear-gradient(90deg, transparent 0 10%, rgba(83, 255, 159, .08) 10.25%, transparent 10.5% 89%, rgba(83, 255, 159, .08) 89.25%, transparent 89.5%),
+        radial-gradient(circle at 50% 50%, transparent 0 55%, rgba(0, 0, 0, .42) 100%);
+    }
+
+    #message.menu-page::after {
+      content: "";
+      position: fixed;
+      inset: -40px;
+      pointer-events: none;
+      opacity: .3;
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,.8) 0 1px, transparent 1.5px),
+        radial-gradient(circle, rgba(82,210,255,.45) 0 1px, transparent 1.5px);
+      background-size: 96px 96px, 148px 148px;
+      animation: starDrift 24s linear infinite;
+    }
+
+    @keyframes starDrift {
+      from { transform: translate3d(0, 0, 0); }
+      to { transform: translate3d(-92px, 92px, 0); }
+    }
+
+    #message.menu-page > * {
+      position: relative;
+      z-index: 1;
+      width: min(900px, 100%);
+    }
+
+    #message.menu-page h1 {
+      display: none;
+    }
+
+    .main-logo {
+      display: none;
+    }
+
+    #message.menu-page .main-logo {
+      display: block;
+      width: min(780px, 94vw);
+      height: auto;
+      margin: 0 auto 10px;
+      filter: drop-shadow(0 0 22px rgba(77, 190, 255, .48));
+    }
+
+    #message h1 {
+      margin: 0 0 8px;
+      font-size: clamp(32px, 7vw, 68px);
+      line-height: .95;
+      color: #fff;
+    }
+
+    #message p {
+      margin: 8px auto;
+      max-width: 440px;
+      color: #bdefff;
+      font: 600 15px/1.45 "Segoe UI", system-ui, sans-serif;
+      text-transform: none;
+    }
+
+    #message button {
+      margin-top: 16px;
+      border: 0;
+      border-radius: 7px;
+      padding: 12px 22px;
+      background: linear-gradient(90deg, #1af08c, #9dff60);
+      color: #061126;
+      font-weight: 900;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .menu-actions {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .menu-actions button {
+      margin-top: 0;
+      min-width: 128px;
+    }
+
+    #message.menu-page .menu-actions #start {
+      min-width: min(520px, 100%);
+      padding: 18px 34px;
+      font-size: clamp(22px, 4vw, 40px);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      border: 2px solid rgba(177, 255, 118, .66);
+      box-shadow: 0 0 30px rgba(125, 255, 106, .26), inset 0 0 22px rgba(255, 255, 255, .16);
+    }
+
+    .menu-actions .secondary {
+      color: #d7fbff;
+      background: rgba(4, 18, 48, .86);
+      border: 2px solid rgba(53, 246, 255, .6);
+    }
+
+    .menu-wallet {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin: 8px auto 14px;
+      padding: 14px 26px;
+      border: 2px solid rgba(83, 255, 159, .55);
+      border-radius: 8px;
+      background: rgba(3, 18, 36, .72);
+      color: #d8ff56;
+      font-weight: 900;
+      box-shadow: inset 0 0 16px rgba(83, 255, 159, .14);
+    }
+
+    #message.menu-page .menu-wallet {
+      width: min(620px, 100%);
+      justify-content: flex-start;
+      border-color: rgba(125, 255, 106, .72);
+      background: linear-gradient(90deg, rgba(2, 15, 34, .94), rgba(2, 9, 25, .72));
+      box-shadow: 0 0 24px rgba(83, 255, 159, .18), inset 0 0 20px rgba(83, 255, 159, .08);
+    }
+
+    .menu-highscore {
+      position: relative;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      width: min(360px, 100%) !important;
+      margin: 0 auto 12px;
+      padding: 12px 18px;
+      border: 1px solid rgba(53, 246, 255, .62);
+      border-radius: 8px;
+      background: rgba(2, 14, 32, .78);
+      color: #f7fbff;
+      font-weight: 900;
+      box-shadow: 0 0 20px rgba(53, 246, 255, .18), inset 0 0 18px rgba(83, 255, 159, .08);
+    }
+
+    .menu-highscore span:first-child {
+      color: #53ff9f;
+      text-transform: uppercase;
+      font-size: 13px;
+      letter-spacing: .08em;
+    }
+
+    .menu-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin: 18px 0 10px;
+      z-index: 4;
+    }
+
+    #message.menu-page.shop-open {
+      justify-content: flex-start;
+      overflow: hidden;
+      padding: clamp(16px, 3vw, 34px);
+    }
+
+    .menu-tab {
+      border: 2px solid rgba(83, 255, 159, .45);
+      border-radius: 7px;
+      background: rgba(4, 18, 48, .78);
+      color: #d7fbff;
+      padding: 9px 13px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .menu-tab.active {
+      color: #061126;
+      background: linear-gradient(90deg, #1af08c, #9dff60);
+    }
+
+    .shop-shell {
+      width: min(1200px, calc(100vw - 32px));
+      height: calc(100vh - clamp(32px, 6vw, 68px));
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(83, 255, 159, .28);
+      border-radius: 8px;
+      background: rgba(2, 9, 28, .58);
+      box-shadow: 0 0 38px rgba(83, 255, 159, .13), inset 0 0 28px rgba(83, 255, 159, .05);
+      overflow: hidden;
+    }
+
+    .shop-header {
+      flex: 0 0 auto;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: center;
+      width: 100%;
+      padding: 18px 20px;
+      background: linear-gradient(180deg, rgba(3, 15, 42, .98), rgba(2, 8, 23, .92));
+      border-bottom: 1px solid rgba(83, 255, 159, .2);
+    }
+
+    .shop-header button {
+      margin: 0 !important;
+      white-space: nowrap;
+    }
+
+    .shop-title {
+      min-width: 0;
+      text-align: left;
+    }
+
+    .shop-title h2 {
+      margin: 0;
+      color: #fff;
+      font-size: clamp(24px, 4vw, 40px);
+      line-height: 1;
+    }
+
+    .shop-title p {
+      margin: 8px 0 0 !important;
+      max-width: 640px !important;
+      color: #bdefff !important;
+    }
+
+    .shop-balance {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(125, 255, 106, .42);
+      background: rgba(1, 13, 30, .7);
+      color: #d8ff56;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .currency-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      min-width: 228px;
+      padding: 16px 20px;
+      border: 1px solid rgba(83, 255, 159, .52);
+      border-radius: 9px;
+      background: linear-gradient(180deg, rgba(1, 12, 32, .94), rgba(1, 9, 24, .86));
+      box-shadow: inset 0 0 18px rgba(83, 255, 159, .04), 0 0 18px rgba(83, 255, 159, .08);
+      color: #d8ff56;
+      font-size: clamp(20px, 2.6vw, 26px);
+      font-weight: 1000;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .currency-pill .currency-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .currency-pill .gem {
+      width: 26px;
+      height: 40px;
+      flex: 0 0 auto;
+      margin: -4px 0;
+    }
+
+    .currency-pill .core-icon {
+      width: 25px;
+      height: 25px;
+      flex: 0 0 auto;
+    }
+
+    .shop-filters {
+      flex: 0 0 auto;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 14px 20px;
+      background: rgba(2, 10, 30, .74);
+      border-bottom: 1px solid rgba(83, 255, 159, .14);
+    }
+
+    .shop-filter {
+      margin: 0 !important;
+      padding: 9px 16px !important;
+      min-width: 112px;
+      color: #d7fbff !important;
+      background: rgba(4, 18, 48, .86) !important;
+      border: 1px solid rgba(83, 255, 159, .42) !important;
+    }
+
+    .shop-filter.active {
+      color: #061126 !important;
+      background: linear-gradient(90deg, #1af08c, #9dff60) !important;
+    }
+
+    .shop-grid {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(560px, 1fr));
+      grid-auto-rows: auto;
+      align-content: start;
+      align-items: stretch;
+      gap: 16px;
+      padding: 26px 28px 30px;
+      margin: 0;
+      text-align: left;
+    }
+
+    .shop-card {
+      min-width: 0;
+      min-height: 194px;
+      height: auto;
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 144px minmax(0, 1fr) 204px;
+      gap: 24px;
+      align-items: center;
+      padding: 24px 28px;
+      border-radius: 8px;
+      border: 1px solid rgba(83, 255, 159, .28);
+      background: linear-gradient(180deg, rgba(4, 17, 43, .82), rgba(2, 12, 30, .78));
+      box-shadow: inset 0 0 14px rgba(83, 255, 159, .06);
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+    .shop-card:hover,
+    .shop-card:focus-within {
+      border-color: rgba(125, 255, 106, .7);
+      box-shadow: 0 0 18px rgba(83, 255, 159, .12), inset 0 0 18px rgba(83, 255, 159, .08);
+    }
+
+    .shop-card > .shop-info,
+    .shop-card > .shop-action {
+      position: static !important;
+      transform: none !important;
+      margin: 0;
+    }
+
+    .shop-photo {
+      width: 126px;
+      height: 126px;
+      min-height: 126px;
+      align-self: center;
+      justify-self: start;
+      border-radius: 8px;
+      border: 1px solid rgba(125, 255, 106, .45);
+      background:
+        radial-gradient(circle at 50% 38%, rgba(255, 255, 255, .2), transparent 18%),
+        linear-gradient(145deg, rgba(4, 22, 50, .95), rgba(1, 10, 24, .95));
+      box-shadow: inset 0 0 18px rgba(83, 255, 159, .14), 0 0 16px rgba(83, 255, 159, .1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .shop-info {
+      position: static;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-wrap: anywhere;
+    }
+
+    .shop-card h3 {
+      margin: 0;
+      color: #f7fbff;
+      font-size: 17px;
+      line-height: 1.16;
+    }
+
+    .shop-type {
+      width: fit-content;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(83, 255, 159, .35);
+      color: #7dff6a;
+      background: rgba(83, 255, 159, .08);
+      font: 800 11px/1 "Segoe UI", system-ui, sans-serif;
+      text-transform: uppercase;
+    }
+
+    .shop-card p {
+      margin: 0 !important;
+      max-width: none !important;
+      color: #c6eaff !important;
+      font-size: 13px !important;
+      line-height: 1.38 !important;
+      overflow-wrap: anywhere;
+    }
+
+    .shop-status,
+    .shop-effect {
+      color: #d8ff56;
+      font: 800 12px/1.25 "Segoe UI", system-ui, sans-serif;
+      text-transform: uppercase;
+    }
+
+    .shop-effect {
+      color: #aeeec8;
+      text-transform: none;
+      font-weight: 700;
+    }
+
+    .shop-action {
+      position: static;
+      min-width: 0;
+      max-width: 100%;
+      height: auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: stretch;
+      gap: 16px;
+      border-left: 1px solid rgba(83, 255, 159, .14);
+      padding-left: 20px;
+    }
+
+    .shop-price {
+      color: #d8ff56;
+      font-size: 18px;
+      font-weight: 900;
+      text-align: right;
+      white-space: nowrap;
+      overflow-wrap: anywhere;
+    }
+
+    .shop-card button {
+      position: static;
+      margin: 0 !important;
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 18px;
+      border-radius: 7px;
+      white-space: normal;
+      line-height: 1.15;
+    }
+
+    .shop-card button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      filter: grayscale(.3);
+    }
+
+    .loadout-panel {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      width: min(880px, 100%);
+      margin: 14px auto 0;
+      text-align: left;
+    }
+
+    #loadoutPanel {
+      width: min(940px, calc(100vw - 32px));
+      max-height: calc(100vh - 32px);
+      min-height: 0;
+    }
+
+    #message.menu-page.panel-open #loadoutPanel:not(.hidden) {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .loadout-header,
+    .controls-header {
+      flex: 0 0 auto;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      width: min(880px, 100%);
+      margin: 0 auto 12px;
+      text-align: left;
+    }
+
+    #message.menu-page.panel-open #loadoutPanel > p {
+      flex: 0 0 auto;
+    }
+
+    #message.menu-page.panel-open .loadout-panel {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+      padding-right: 8px;
+    }
+
+    .loadout-header h2,
+    .controls-header h2 {
+      margin: 0;
+      color: #f7fbff;
+      font-size: clamp(22px, 4vw, 34px);
+      line-height: 1;
+    }
+
+    .loadout-balance {
+      justify-self: end;
+    }
+
+    .loadout-section {
+      border: 1px solid rgba(83, 255, 159, .28);
+      border-radius: 8px;
+      padding: 14px;
+      background: rgba(2, 13, 34, .72);
+      box-shadow: inset 0 0 14px rgba(83, 255, 159, .06);
+    }
+
+    .loadout-section h3 {
+      margin: 0 0 10px;
+      color: #7dff6a;
+      font-size: 16px;
+    }
+
+    .loadout-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .loadout-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: #d7fbff;
+      font: 700 13px/1.3 "Segoe UI", system-ui, sans-serif;
+      min-width: 0;
+    }
+
+    .loadout-row span {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .loadout-row button {
+      margin: 0 !important;
+      padding: 7px 10px !important;
+      min-width: 84px;
+      font-size: 12px !important;
+    }
+
+    .loadout-row button.selected {
+      background: linear-gradient(90deg, #1af08c, #d8ff56);
+    }
+
+    .controls-panel {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      width: min(640px, 100%);
+      margin: 14px auto 0;
+      text-align: left;
+    }
+
+    .control-row {
+      padding: 12px 14px;
+      border: 1px solid rgba(83, 255, 159, .24);
+      border-radius: 8px;
+      background: rgba(2, 13, 34, .68);
+      color: #d7fbff;
+      font: 700 13px/1.3 "Segoe UI", system-ui, sans-serif;
+    }
+
+    .control-row strong {
+      display: block;
+      color: #7dff6a;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .story-panel {
+      width: min(820px, 100%);
+      margin: 12px auto 0;
+      padding: 14px 16px;
+      border: 1px solid rgba(83, 255, 159, .24);
+      border-radius: 8px;
+      background: rgba(2, 13, 34, .56);
+      color: #c6eaff;
+      font: 800 14px/1.45 "Segoe UI", system-ui, sans-serif;
+      text-align: left;
+    }
+
+    .core-icon {
+      width: 18px;
+      height: 18px;
+      display: inline-block;
+      clip-path: polygon(50% 0, 92% 48%, 50% 100%, 8% 48%);
+      background: linear-gradient(135deg, #5ee8ff, #a86bff 55%, #ffe681);
+      filter: drop-shadow(0 0 8px #7b8cff);
+      vertical-align: middle;
+    }
+
+    .mission-panel {
+      width: min(980px, calc(100vw - 32px));
+      max-height: calc(100vh - 32px);
+      min-height: 0;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .mission-header {
+      flex: 0 0 auto;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+      text-align: left;
+    }
+
+    .currency-stack {
+      justify-self: end;
+    }
+
+    .mission-tabs {
+      flex: 0 0 auto;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+
+    .daily-countdown {
+      flex: 0 0 auto;
+      margin: -2px 0 12px;
+      padding: 9px 12px;
+      border: 1px solid rgba(83, 255, 159, .25);
+      border-radius: 8px;
+      background: rgba(2, 13, 34, .66);
+      color: #d8ff56;
+      font: 900 13px/1.2 "Segoe UI", system-ui, sans-serif;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .mission-list {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+      display: grid;
+      gap: 12px;
+      padding-right: 8px;
+      text-align: left;
+    }
+
+    .mission-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      padding: 14px;
+      border: 1px solid rgba(83, 255, 159, .26);
+      border-radius: 8px;
+      background: rgba(2, 13, 34, .76);
+    }
+
+    .mission-card h3 {
+      margin: 0 0 5px;
+      color: #fff;
+      font-size: 16px;
+    }
+
+    .mission-card p {
+      margin: 0 0 9px !important;
+      max-width: none !important;
+      font-size: 13px !important;
+      text-align: left !important;
+    }
+
+    .mission-progress {
+      height: 10px;
+      border: 1px solid rgba(83, 255, 159, .34);
+      border-radius: 99px;
+      overflow: hidden;
+      background: rgba(1, 8, 22, .8);
+    }
+
+    .mission-progress span {
+      display: block;
+      height: 100%;
+      width: var(--progress, 0%);
+      background: linear-gradient(90deg, #1af08c, #9dff60);
+    }
+
+    .mission-reward {
+      color: #d8ff56;
+      font-weight: 900;
+      white-space: nowrap;
+      align-self: center;
+      text-align: right;
+    }
+
+    .shop-photo::before,
+    .shop-photo::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .shop-photo.shield::before {
+      width: 48px;
+      height: 58px;
+      border: 5px solid #43e7ff;
+      border-radius: 48% 48% 42% 42%;
+      box-shadow: 0 0 18px #43e7ff;
+    }
+
+    .shop-photo.rapid::before {
+      width: 34px;
+      height: 58px;
+      border-radius: 13px;
+      background: linear-gradient(90deg, #11212a 0 18%, #70ff22 28% 72%, #11212a 82%);
+      border: 5px solid #20313a;
+      box-shadow: 0 0 22px #70ff22;
+      transform: translate(-50%, -50%) rotate(-16deg);
+    }
+
+    .shop-photo.rapid::after {
+      width: 46px;
+      height: 8px;
+      border-radius: 8px;
+      background: #baff83;
+      transform: translate(-50%, -50%) rotate(-16deg);
+      box-shadow: 0 0 16px #70ff22;
+    }
+
+    .shop-photo.dash::before {
+      width: 64px;
+      height: 52px;
+      clip-path: polygon(0 0, 54% 0, 100% 50%, 54% 100%, 0 100%, 40% 50%);
+      background: linear-gradient(135deg, #bfffff, #24e7ff 58%, #0b73d8);
+      box-shadow: 0 0 24px #24e7ff, -18px 0 22px rgba(36, 231, 255, .4);
+    }
+
+    .shop-photo.dash::after {
+      width: 48px;
+      height: 42px;
+      clip-path: polygon(0 0, 54% 0, 100% 50%, 54% 100%, 0 100%, 40% 50%);
+      background: linear-gradient(135deg, rgba(255,255,255,.95), #43e7ff 56%, #0e8df2);
+      transform: translate(-10%, -50%);
+      box-shadow: 0 0 20px #43e7ff;
+    }
+
+    .shop-photo.slow::before {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      border: 5px solid #b26bff;
+      box-shadow: 0 0 18px #b26bff;
+    }
+
+    .shop-photo.slow::after {
+      width: 4px;
+      height: 26px;
+      background: #e7d5ff;
+      transform: translate(-50%, -50%) rotate(36deg);
+      transform-origin: center bottom;
+      box-shadow: 0 0 10px #b26bff;
+    }
+
+    .shop-photo.magnet::before {
+      width: 58px;
+      height: 52px;
+      border-radius: 0 0 30px 30px;
+      border: 10px solid #0a54c5;
+      border-top: 0;
+      box-shadow: 0 0 20px #20dfff, inset 0 0 14px #20dfff;
+    }
+
+    .shop-photo.magnet::after {
+      width: 20px;
+      height: 18px;
+      border-radius: 4px;
+      background: linear-gradient(#cfffff, #0a54c5);
+      box-shadow: -27px -26px 0 #0a54c5, 27px -26px 0 #0a54c5, 0 0 16px #20dfff;
+      transform: translate(-50%, -10%);
+    }
+
+    .shop-photo.double::before {
+      width: 24px;
+      height: 38px;
+      clip-path: polygon(50% 0, 88% 28%, 76% 74%, 50% 100%, 24% 74%, 12% 28%);
+      background: linear-gradient(180deg, #cfffff, #38ff5e 62%, #0fdc7c);
+      box-shadow: -14px 0 12px #38ff5e, 14px 0 12px #38ff5e, 0 0 22px #d8ff56;
+    }
+
+    .shop-photo.double::after {
+      content: "2x";
+      width: auto;
+      height: auto;
+      color: #fff45c;
+      font-size: 24px;
+      font-weight: 1000;
+      text-shadow: 0 0 14px #d8ff56;
+      transform: translate(-50%, 14%);
+    }
+
+    .shop-photo.combo::before {
+      content: "x";
+      width: auto;
+      height: auto;
+      color: #d8ff56;
+      font-size: 54px;
+      font-weight: 900;
+      text-shadow: 0 0 16px #d8ff56;
+      background: transparent;
+    }
+
+    .shop-photo.health::before {
+      width: 54px;
+      height: 46px;
+      background: #7dff6a;
+      clip-path: polygon(50% 100%, 8% 52%, 8% 22%, 26% 8%, 50% 22%, 74% 8%, 92% 22%, 92% 52%);
+      box-shadow: 0 0 18px #7dff6a;
+    }
+
+    .shop-photo.weapon::before {
+      width: 58px;
+      height: 18px;
+      border-radius: 14px;
+      background: linear-gradient(90deg, #c8ced6, #7dff6a);
+      box-shadow: 0 0 18px #7dff6a;
+    }
+
+    .shop-photo.upgrade::before {
+      width: 54px;
+      height: 54px;
+      clip-path: polygon(50% 0, 92% 78%, 50% 60%, 8% 78%);
+      background: #7dff6a;
+      box-shadow: 0 0 18px #7dff6a;
+    }
+
+    .shop-photo.emerald::before,
+    .shop-photo.default::before,
+    .shop-photo.obsidian::before,
+    .shop-photo.gold::before,
+    .shop-photo.solar::before,
+    .shop-photo.ice::before,
+    .shop-photo.racer::before {
+      width: 64px;
+      height: 24px;
+      border-radius: 18px;
+      background: linear-gradient(90deg, #8b929a, #c5d0d8);
+      box-shadow: 0 12px 18px rgba(83, 255, 159, .2);
+    }
+
+    .shop-photo.emerald::after {
+      width: 44px;
+      height: 5px;
+      border-radius: 4px;
+      background: #21ff72;
+      box-shadow: 0 0 14px #21ff72;
+    }
+
+    .shop-photo.obsidian::before {
+      background: linear-gradient(90deg, #111926, #5e6d7d);
+      box-shadow: 0 0 18px rgba(125, 255, 106, .2);
+    }
+
+    .shop-photo.obsidian::after {
+      width: 48px;
+      height: 5px;
+      border-radius: 4px;
+      background: #7dff6a;
+      box-shadow: 0 0 14px #7dff6a;
+    }
+
+    .shop-photo.gold::before {
+      background: linear-gradient(90deg, #826424, #ffe08a 48%, #b8892c);
+      box-shadow: 0 0 18px rgba(255, 224, 138, .42);
+    }
+
+    .shop-photo.gold::after {
+      width: 38px;
+      height: 5px;
+      border-radius: 4px;
+      background: #ffffff;
+      box-shadow: 0 0 14px #ffe08a;
+    }
+
+    .shop-photo.solar::before {
+      background: linear-gradient(90deg, #314157, #ff9c35 48%, #7dff6a);
+      box-shadow: 0 0 18px rgba(255, 156, 53, .45);
+    }
+
+    .shop-photo.solar::after {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff05a;
+      box-shadow: 0 0 16px #fff05a;
+    }
+
+    .shop-photo.ice::before {
+      background: linear-gradient(90deg, #aaf5ff, #ffffff 48%, #53ff9f);
+      box-shadow: 0 0 18px rgba(170, 245, 255, .52);
+    }
+
+    .shop-photo.ice::after {
+      width: 42px;
+      height: 5px;
+      border-radius: 4px;
+      background: #123b88;
+      box-shadow: 0 0 12px #53ff9f;
+    }
+
+    .shop-photo.racer::before {
+      background: linear-gradient(90deg, #1b2636, #dcecff 48%, #1b2636);
+      box-shadow: 0 0 18px rgba(220, 236, 255, .38);
+    }
+
+    .shop-photo.racer::after {
+      width: 50px;
+      height: 6px;
+      border-radius: 4px;
+      background: repeating-linear-gradient(90deg, #7dff6a 0 7px, #061126 7px 14px);
+      box-shadow: 0 0 14px #7dff6a;
+    }
+
+    .shop-photo.chrome::before {
+      width: 38px;
+      height: 54px;
+      border-radius: 22px 22px 14px 14px;
+      background: linear-gradient(145deg, #ffffff, #9fa9b5 62%, #eef7ff);
+      box-shadow: 0 0 18px rgba(240, 247, 255, .5);
+    }
+
+    .shop-photo.chrome::after {
+      width: 30px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(60, 255, 170, .62);
+      transform: translate(-50%, -82%);
+    }
+
+    .shop-photo.blueflame::before,
+    .shop-photo.greenion::before,
+    .shop-photo.purplecomet::before,
+    .shop-photo.rainbow::before,
+    .shop-photo.blackhole::before {
+      width: 18px;
+      height: 58px;
+      border-radius: 70% 70% 50% 50%;
+      transform: translate(-50%, -50%) rotate(35deg);
+      background: #43e7ff;
+      box-shadow: 0 0 18px #43e7ff;
+    }
+
+    .shop-photo.greenion::before { background: #7dff6a; box-shadow: 0 0 18px #7dff6a; }
+    .shop-photo.purplecomet::before { background: #b26bff; box-shadow: 0 0 18px #b26bff; }
+    .shop-photo.rainbow::before { background: linear-gradient(#ff4d6d, #fff05a, #7dff6a, #43e7ff, #b26bff); box-shadow: 0 0 18px #fff; }
+    .shop-photo.blackhole::before { background: #02030a; border: 4px solid #b26bff; box-shadow: 0 0 18px #b26bff; }
+
+    .shop-photo.redmars::before,
+    .shop-photo.cyberpilot::before,
+    .shop-photo.alienhunter::before,
+    .shop-photo.goldencommander::before,
+    .shop-photo.rookiesuit::before {
+      width: 38px;
+      height: 54px;
+      border-radius: 22px 22px 14px 14px;
+      background: linear-gradient(145deg, #ffffff, #9fa9b5 62%, #eef7ff);
+      box-shadow: 0 0 18px rgba(240, 247, 255, .5);
+    }
+
+    .shop-photo.redmars::before { background: linear-gradient(145deg, #fff, #c44135 62%, #611915); }
+    .shop-photo.cyberpilot::before { background: linear-gradient(145deg, #0b1424, #43e7ff 62%, #7dff6a); }
+    .shop-photo.alienhunter::before { background: linear-gradient(145deg, #dcecff, #314157 62%, #7dff6a); }
+    .shop-photo.goldencommander::before { background: linear-gradient(145deg, #fff4bf, #d5aa45 62%, #8d641b); }
+
+    .shop-photo.cyreticle::before,
+    .shop-photo.orangereticle::before,
+    .shop-photo.purplereticle::before,
+    .shop-photo.redreticle::before,
+    .shop-photo.greenreticle::before {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 5px solid #7dff6a;
+      box-shadow: 0 0 18px #7dff6a;
+    }
+
+    .shop-photo.cyreticle::before { border-color: #43e7ff; box-shadow: 0 0 18px #43e7ff; }
+    .shop-photo.orangereticle::before { border-color: #ff9c35; box-shadow: 0 0 18px #ff9c35; }
+    .shop-photo.purplereticle::before { border-color: #b26bff; box-shadow: 0 0 18px #b26bff; }
+    .shop-photo.redreticle::before { border-color: #ff4d6d; box-shadow: 0 0 18px #ff4d6d; }
+
+    .menu-panel.hidden {
+      display: none;
+    }
+
+    #message.menu-page.shop-open #shopPanel {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      width: min(1180px, 100%);
+    }
+
+    #message.menu-page.shop-open > h1,
+    #message.menu-page.panel-open > h1,
+    #message.menu-page.shop-open > .main-logo,
+    #message.menu-page.panel-open > .main-logo,
+    #message.menu-page.shop-open > .menu-wallet,
+    #message.menu-page.panel-open > .menu-wallet,
+    #message.menu-page.shop-open > .menu-tabs,
+    #message.menu-page.panel-open > .menu-tabs,
+    #message.menu-page.shop-open > .menu-highscore,
+    #message.menu-page.panel-open > .menu-highscore,
+    #message.menu-page.shop-open > .menu-actions {
+      display: none;
+    }
+
+    #message.menu-page.panel-open > .story-panel {
+      display: none;
+    }
+
+    #message.menu-page.shop-open,
+    #message.menu-page.panel-open {
+      padding: 16px;
+      justify-content: flex-start;
+      overflow: hidden;
+    }
+
+    #message.menu-page.shop-open #shopGrid {
+      padding-right: 6px;
+    }
+
+    .hidden { display: none; }
+    #message.hidden { display: none; }
+
+    @media (max-width: 1280px) {
+      .shop-grid {
+        grid-template-columns: 1fr;
+        padding: 22px;
+      }
+      .shop-card {
+        grid-template-columns: 126px minmax(0, 1fr) 220px;
+        min-height: 186px;
+        height: auto;
+        overflow: hidden;
+      }
+    }
+
+    @media (max-width: 1040px) {
+      .shop-grid { grid-template-columns: 1fr; }
+      .shop-card {
+        grid-template-columns: 92px minmax(0, 1fr) 150px;
+        gap: 14px;
+        padding: 16px;
+        min-height: 124px;
+        overflow: hidden;
+      }
+      .shop-photo {
+        width: 82px;
+        height: 82px;
+        min-height: 82px;
+      }
+      .shop-card h3 { font-size: 16px; }
+      .shop-card p { display: none; }
+      .shop-effect { display: none; }
+      .shop-status { font-size: 11px; }
+      .shop-action {
+        grid-column: auto;
+        min-width: 0;
+        width: 100%;
+        border-left: 1px solid rgba(83, 255, 159, .14);
+        border-top: 0;
+        padding-left: 12px;
+        padding-top: 0;
+        gap: 10px;
+      }
+      .shop-price { text-align: right; font-size: 15px; }
+      .shop-card button { font-size: 14px; padding: 9px 10px; }
+    }
+
+    @media (max-width: 800px) {
+      .shop-grid { grid-template-columns: 1fr; }
+      #message.menu-page { padding: 22px; }
+      #message.menu-page h1 { font-size: clamp(42px, 13vw, 86px); }
+      #message.menu-page .menu-wallet { width: min(560px, 100%); }
+      .menu-tabs { flex-wrap: wrap; gap: 10px; }
+      .menu-tab { flex: 1 1 150px; }
+      .mission-card { grid-template-columns: 1fr; }
+      .mission-reward { text-align: left; }
+    }
+
+    @media (max-width: 620px) {
+      .shop-card {
+        grid-template-columns: 62px minmax(0, 1fr) 112px;
+        gap: 10px;
+        padding: 12px;
+        min-height: 90px;
+        height: auto;
+        overflow: hidden;
+      }
+
+      .shop-action {
+        grid-column: auto;
+        min-width: 0;
+        width: 100%;
+        border-left: 1px solid rgba(83, 255, 159, .14);
+        border-top: 0;
+        padding-left: 8px;
+        padding-top: 0;
+        gap: 7px;
+      }
+
+      .shop-photo { width: 54px; height: 54px; min-height: 54px; }
+      .shop-card h3 { font-size: 13px; }
+      .shop-type,
+      .shop-status { display: none; }
+      .shop-price { text-align: right; font-size: 12px; white-space: normal; }
+      .shop-card button { font-size: 12px; padding: 8px 6px; }
+      .shop-card button { width: 100%; }
+    }
+
+    @media (max-width: 780px) {
+      .hud-block { padding: 10px 12px; }
+      .top-left { left: 8px; top: 8px; min-width: 150px; }
+      .top-center { top: 8px; min-width: 200px; }
+      .top-right { right: 8px; top: 8px; min-width: 170px; }
+      .bottom-left { left: 8px; bottom: 10px; gap: 7px; }
+      .bottom-right { right: 8px; bottom: 10px; min-width: 170px; }
+      .energy-shell { height: 20px; }
+      .speed-shell { height: 28px; }
+      .speed-bar { width: 7px; height: 16px; }
+      .gem { width: 14px; height: 22px; }
+      #reticle { width: 66px; height: 66px; margin: -33px 0 0 -33px; }
+      #message.menu-page.shop-open { padding: 10px; }
+      .shop-shell { height: calc(100vh - 20px); }
+      .shop-header {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 10px;
+        padding: 10px 12px;
+      }
+      .shop-header button {
+        padding: 9px 12px !important;
+        font-size: 14px !important;
+      }
+      .shop-title { text-align: left; }
+      .shop-title h2 { font-size: clamp(24px, 6vw, 36px); }
+      .shop-title p { font-size: 12px !important; margin-top: 4px !important; }
+      .shop-balance { justify-content: center; }
+      .shop-filters { padding: 10px 12px; gap: 7px; }
+      .shop-filter { flex: 1 1 96px; min-width: 0; padding: 9px 8px !important; }
+      .shop-grid { grid-template-columns: 1fr; }
+      .shop-card {
+        grid-template-columns: 74px minmax(0, 1fr) 126px;
+        gap: 12px;
+        padding: 13px;
+        min-height: 100px;
+        height: auto;
+        overflow: hidden;
+      }
+      .shop-action {
+        grid-column: auto;
+        min-width: 0;
+        width: 100%;
+        border-left: 1px solid rgba(83, 255, 159, .14);
+        border-top: 0;
+        padding-left: 9px;
+        padding-top: 0;
+      }
+      .shop-price { text-align: right; }
+      .shop-photo { width: 64px; height: 64px; min-height: 64px; }
+      .active-powerups {
+        justify-content: end;
+      }
+      .power-chip {
+        font-size: 10px;
+        padding: 4px 6px;
+      }
+      .menu-highscore {
+        right: auto;
+        bottom: auto;
+        justify-content: center;
+        width: min(620px, 100%) !important;
+        margin-top: 12px;
+      }
+      .loadout-panel,
+      .controls-panel {
+        grid-template-columns: 1fr;
+        width: 100%;
+      }
+      #loadoutPanel {
+        width: calc(100vw - 20px);
+        max-height: calc(100vh - 20px);
+      }
+      .loadout-header,
+      .controls-header {
+        grid-template-columns: auto minmax(0, 1fr);
+        width: 100%;
+        text-align: left;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .loadout-header h2,
+      .controls-header h2 {
+        font-size: 24px;
+      }
+      .loadout-header .menu-tab,
+      .controls-header .menu-tab {
+        padding: 9px 12px !important;
+        font-size: 14px !important;
+      }
+      .loadout-balance {
+        grid-column: 1 / -1;
+        justify-self: start;
+      }
+      .currency-pill {
+        min-width: 0;
+        width: fit-content;
+        max-width: 100%;
+        padding: 12px 14px;
+        gap: 12px;
+        font-size: 20px;
+      }
+      .currency-pill .gem {
+        width: 22px;
+        height: 34px;
+      }
+      .currency-pill .core-icon {
+        width: 21px;
+        height: 21px;
+      }
+      .loadout-row {
+        align-items: stretch;
+        flex-direction: column;
+      }
+      .loadout-row button {
+        width: 100%;
+      }
+      .mission-panel {
+        width: calc(100vw - 20px);
+        max-height: calc(100vh - 20px);
+      }
+      .mission-header {
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+      .currency-stack {
+        grid-column: 1 / -1;
+        justify-self: start;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .shop-header {
+        gap: 8px;
+      }
+      .shop-title p {
+        display: none;
+      }
+      .shop-balance {
+        padding: 8px;
+      }
+      .shop-grid {
+        gap: 10px;
+        padding: 12px;
+      }
+      .shop-card {
+        grid-template-columns: 62px minmax(0, 1fr) 112px;
+        gap: 10px;
+        padding: 12px;
+        min-height: 90px;
+      }
+      .shop-photo {
+        width: 54px;
+        height: 54px;
+        min-height: 54px;
+      }
+      .shop-card h3 {
+        font-size: 13px;
+        line-height: 1.1;
+      }
+      .shop-type,
+      .shop-status,
+      .shop-card p,
+      .shop-effect {
+        display: none !important;
+      }
+      .shop-action {
+        gap: 7px;
+        padding-left: 8px;
+      }
+      .shop-price {
+        font-size: 12px;
+        white-space: normal;
+      }
+      .shop-card button {
+        font-size: 12px;
+        padding: 8px 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="vignette"></div>
+  <div id="reticle"><span class="dot"></span></div>
+
+  <div class="hud">
+    <div class="hud-block top-left">
+      <div class="label">Score</div>
+      <div id="score" class="big">0</div>
+      <div id="comboSmall" class="medium yellow">1x</div>
+    </div>
+
+    <div class="hud-block top-center">
+      <div class="label">Health</div>
+      <div id="health" class="health-row"></div>
+      <div class="label">Combo</div>
+      <div id="combo" class="medium">1x</div>
+    </div>
+
+    <div class="hud-block top-right">
+      <div class="label">Crystals</div>
+      <div class="crystal-row">
+        <span class="gem"></span><span class="gem"></span><span id="crystals" class="medium">0</span><span class="gem"></span>
+      </div>
+      <div class="label">Star Cores</div>
+      <div class="crystal-row">
+        <span class="core-icon"></span><span id="runStarCores" class="medium">0</span>
+      </div>
+      <div class="label">Energy</div>
+      <div class="energy-shell"><div id="energyFill" class="energy-fill"></div></div>
+      <div id="energyText" class="medium yellow">100%</div>
+      <div id="activePowerups" class="active-powerups hidden"></div>
+    </div>
+
+    <div class="hud-block bottom-left">
+      <div class="mobile-pad" aria-label="Mobile movement controls">
+        <button class="dir-button dir-up" data-move="up" aria-label="Jump">↑</button>
+        <button class="dir-button dir-left" data-move="left" aria-label="Move left">←</button>
+        <button class="dir-button dir-down" data-move="down" aria-label="Slide">↓</button>
+        <button class="dir-button dir-right" data-move="right" aria-label="Move right">→</button>
+      </div>
+    </div>
+
+    <div class="hud-block bottom-right">
+      <div><span class="label">Lvl </span><span id="level" class="medium">1</span><span class="label"> / Speed</span></div>
+      <div id="speedBars" class="speed-shell"></div>
+    </div>
+  </div>
+
+  <div id="message">
+    <h1>Starline Run</h1>
+    <img class="main-logo" src="starline-logo.png" alt="Starline Run" />
+    <div class="menu-wallet"><span class="gem"></span><span>Total Crystals</span><span id="totalCrystals">0</span></div>
+    <div class="menu-wallet"><span class="core-icon"></span><span>Star Cores</span><span id="totalStarCores">0</span></div>
+    <div class="menu-highscore"><span>High Score</span><span id="highScore">0</span></div>
+    <div class="menu-tabs">
+      <button id="shopTab" class="menu-tab">Shop</button>
+      <button id="loadoutTab" class="menu-tab">Loadout</button>
+      <button id="missionsTab" class="menu-tab">Missions</button>
+      <button id="controlsTab" class="menu-tab">Controls</button>
+    </div>
+    <div id="playPanel" class="menu-panel">
+      <p>Ride the neon starline on a metal hoverboard. Switch lanes, jump, slide, aim with the mouse, and click to fire.</p>
+      <p>Dodge fixed crates and laser gates, collect crystal trails, and shoot the bright flying drones before they reach you.</p>
+    </div>
+    <div class="story-panel">The Starline connects distant colonies through a neon space highway. You are a courier-ranger carrying unstable crystals when alien raiders corrupt the route. Escape the collapsing highway, destroy threats, and survive long enough to warn the next colony.</div>
+    <div id="shopPanel" class="menu-panel hidden">
+      <div class="shop-shell" aria-label="Starline Shop">
+        <div class="shop-header">
+          <button id="playTab" class="menu-tab">Back</button>
+          <div class="shop-title">
+            <h2>Starline Shop</h2>
+            <p>Buy one-run boosts, permanent upgrades, and cosmetics for future runs.</p>
+          </div>
+          <div class="shop-balance"><span class="gem"></span><span id="shopCrystalBalance">0</span><span class="core-icon"></span><span id="shopCoreBalance">0</span></div>
+        </div>
+        <div class="shop-filters" aria-label="Shop categories">
+          <button class="shop-filter active" data-shop-category="boosts">Boosts</button>
+          <button class="shop-filter" data-shop-category="upgrades">Upgrades</button>
+          <button class="shop-filter" data-shop-category="cosmetics">Cosmetics</button>
+        </div>
+        <div id="shopGrid" class="shop-grid"></div>
+      </div>
+    </div>
+    <div id="loadoutPanel" class="menu-panel hidden">
+      <div class="loadout-header">
+        <button id="loadoutBack" class="menu-tab">Back</button>
+        <h2>Loadout</h2>
+        <div class="loadout-balance currency-pill">
+          <span class="currency-group"><span class="gem"></span><span id="loadoutCrystalBalance">0</span></span>
+          <span class="currency-group"><span class="core-icon"></span><span id="loadoutCoreBalance">0</span></span>
+        </div>
+      </div>
+      <p>Choose which one-run boosts to spend, review permanent upgrades, and confirm your equipped cosmetics before launch.</p>
+      <div id="loadoutGrid" class="loadout-panel"></div>
+    </div>
+    <div id="missionsPanel" class="menu-panel hidden">
+      <div class="mission-panel">
+        <div class="mission-header">
+          <button id="missionsBack" class="menu-tab">Back</button>
+          <h2>Missions</h2>
+          <div class="currency-stack currency-pill">
+            <span class="currency-group"><span class="gem"></span><span id="missionCrystalBalance">0</span></span>
+            <span class="currency-group"><span class="core-icon"></span><span id="missionCoreBalance">0</span></span>
+          </div>
+        </div>
+        <div class="mission-tabs">
+          <button class="menu-tab active" data-mission-tab="daily">Daily</button>
+          <button class="menu-tab" data-mission-tab="lifetime">Lifetime</button>
+        </div>
+        <div id="dailyCountdown" class="daily-countdown"></div>
+        <div id="missionList" class="mission-list"></div>
+      </div>
+    </div>
+    <div id="controlsPanel" class="menu-panel hidden">
+      <div class="controls-header">
+        <button id="controlsBack" class="menu-tab">Back</button>
+        <h2>Controls</h2>
+        <span></span>
+      </div>
+      <p>Keyboard, mouse, and mobile controls are all active during a run.</p>
+      <div class="controls-panel">
+        <div class="control-row"><strong>Move</strong>A/D, arrows, or mobile left/right</div>
+        <div class="control-row"><strong>Jump</strong>W, Space, up arrow, or mobile up</div>
+        <div class="control-row"><strong>Slide</strong>S, down arrow, or mobile down</div>
+        <div class="control-row"><strong>Shoot</strong>Mouse click or F</div>
+        <div class="control-row"><strong>Dash</strong>Shift when a charge is ready</div>
+        <div class="control-row"><strong>Pause</strong>Esc or P</div>
+      </div>
+    </div>
+    <div class="menu-actions">
+      <button id="resume" class="secondary hidden">Resume</button>
+      <button id="start">Start Run</button>
+      <button id="mainMenu" class="secondary hidden">Main Menu</button>
+    </div>
+  </div>
+
+  <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.164.1/build/three.module.js" } }
+  </script>
+  <script type="module">
+    import * as THREE from "three";
+
+    const canvas = document.getElementById("game");
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.35));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.35;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x030918);
+    scene.fog = new THREE.FogExp2(0x08112d, 0.009);
+
+    const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.1, 900);
+    camera.position.set(0, 8.7, 15.3);
+
+    const clock = new THREE.Clock();
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2(0, -0.05);
+    const reticle = document.getElementById("reticle");
+
+    const laneX = [-4.4, 0, 4.4];
+    const state = {
+      running: false,
+      paused: false,
+      gameOver: false,
+      menu: "main",
+      lane: 1,
+      targetLane: 1,
+      jumpVel: 0,
+      y: 0,
+      slide: 0,
+      score: 0,
+      distance: 0,
+      crystals: 0,
+      starCores: 0,
+      combo: 1,
+      comboTimer: 0,
+      health: 3,
+      energy: 100,
+      speed: 31,
+      spawnZ: -50,
+      spawnMeter: 0,
+      spawnGap: 14,
+      rapid: 0,
+      shield: 0,
+      slow: 0,
+      dash: 0,
+      magnet: 0,
+      dashCharges: 1,
+      maxDashCharges: 1,
+      slidePose: 0,
+      isSliding: false,
+      colliderCenterY: .85,
+      colliderHeight: 1.7,
+      slideSparkTimer: 0,
+      emergencyShield: false,
+      doubleCrystals: 0,
+      comboSaver: false,
+      crystalBank: 0,
+      trailTick: 0,
+      shootCooldown: 0,
+      damageFlash: 0,
+      starCoreSpawned: false,
+      cameraShake: 0
+    };
+
+    const boostItems = [
+      { id: "boostDash", category: "boosts", type: "boost", label: "Pocket Dash", cost: 75, desc: "Start next run with +1 dash charge.", effect: "dash", photo: "dash" },
+      { id: "boostSlow", category: "boosts", type: "boost", label: "Slow-Time Core", cost: 125, desc: "Start next run with slow time ready.", effect: "slow", photo: "slow" },
+      { id: "boostShield", category: "boosts", type: "boost", label: "Start Shield", cost: 175, desc: "Begin next run with an 8-second shield.", effect: "shield", photo: "shield" },
+      { id: "boostRapid", category: "boosts", type: "boost", label: "Rapid Charge", cost: 225, desc: "Start next run with rapid fire ready.", effect: "rapid", photo: "rapid" },
+      { id: "boostMagnet", category: "boosts", type: "boost", label: "Crystal Magnet", cost: 250, desc: "Start next run with a 12-second crystal magnet.", effect: "magnet", photo: "magnet" },
+      { id: "boostEmergency", category: "boosts", type: "boost", label: "Emergency Shield", cost: 350, desc: "Automatically blocks one hit during the next run.", effect: "emergencyShield", photo: "shield" },
+      { id: "boostDouble", category: "boosts", type: "boost", label: "2x Crystals", cost: 500, desc: "Start next run with 8 seconds of double crystal pickups.", effect: "doubleCrystals", photo: "double" },
+      { id: "boostComboSaver", category: "boosts", type: "boost", label: "Combo Saver", cost: 450, desc: "Prevents the first combo reset during the next run.", effect: "comboSaver", photo: "combo" }
+    ];
+
+    const upgradeItems = [
+      { id: "upDashCapacity", category: "upgrades", type: "upgrade", label: "Dash Capacity", key: "dashCapacity", prices: [300, 650, 1200], desc: "Increase max dash charges by +1 each level.", photo: "dash" },
+      { id: "upWeaponCooldown", category: "upgrades", type: "upgrade", label: "Weapon Cooldown", key: "weaponCooldown", prices: [250, 500, 900, 1500, 2500], desc: "Weapon recharges slightly faster each level.", photo: "weapon" },
+      { id: "upShieldDuration", category: "upgrades", type: "upgrade", label: "Shield Duration", key: "shieldDuration", prices: [350, 800, 1400, 2200], desc: "Shield powerups last longer.", photo: "shield" },
+      { id: "upMagnetRange", category: "upgrades", type: "upgrade", label: "Magnet Range", key: "magnetRange", prices: [300, 700, 1300, 2000], desc: "Crystal magnet pulls crystals from farther away.", photo: "magnet" },
+      { id: "upSlowDuration", category: "upgrades", type: "upgrade", label: "Slow-Time Duration", key: "slowDuration", prices: [400, 900, 1600, 2600], desc: "Slow time lasts longer.", photo: "slow" },
+      { id: "upStartingHealth", category: "upgrades", type: "upgrade", label: "Starting Health", key: "startingHealth", prices: [1200, 3000], desc: "Start each run with +1 extra health per level above the 3-life base.", photo: "health" },
+      { id: "upComboMultiplier", category: "upgrades", type: "upgrade", label: "Combo Multiplier", key: "comboMultiplier", prices: [500, 1000, 1800, 3000, 5000], desc: "Combo score bonus builds faster.", photo: "combo" },
+      { id: "upCrystalBonus", category: "upgrades", type: "upgrade", label: "Crystal Bonus", key: "crystalBonus", prices: [750, 1500, 2750, 4500, 7000], desc: "Earn +5% crystals per level from each run.", photo: "double" }
+    ];
+
+    const cosmeticItems = [
+      { id: "boardRookie", category: "cosmetics", type: "cosmetic", slot: "board", label: "Neon Rookie Board", cost: 250, desc: "Clean neon-green rookie hoverboard finish.", cosmetic: "neonRookie", photo: "emerald" },
+      { id: "boardSolar", category: "cosmetics", type: "cosmetic", slot: "board", label: "Solar Glide Board", cost: 600, desc: "Warm reactor glow and solar-orange board plating.", cosmetic: "solarGlide", photo: "solar" },
+      { id: "boardMeteor", category: "cosmetics", type: "cosmetic", slot: "board", label: "Meteor Trail Board", cost: 1200, desc: "Dark metal board with hot meteor accent strips.", cosmetic: "meteorTrail", photo: "obsidian" },
+      { id: "boardPlasma", category: "cosmetics", type: "cosmetic", slot: "board", label: "Plasma Wing Board", cost: 2500, desc: "High-end plasma trim and winglike side glow.", cosmetic: "plasmaWing", photo: "ice" },
+      { id: "boardGalaxy", category: "cosmetics", type: "cosmetic", slot: "board", label: "Galaxy Phantom Board", cost: 5000, coreCost: 8, desc: "Deep-space phantom board with violet shimmer.", cosmetic: "galaxyPhantom", photo: "purplecomet" },
+      { id: "boardVoid", category: "cosmetics", type: "cosmetic", slot: "board", label: "Void Emperor Board", cost: 10000, coreCost: 18, desc: "Black-hole royal board for long-term collectors.", cosmetic: "voidEmperor", photo: "blackhole" },
+      { id: "trailBlue", category: "cosmetics", type: "cosmetic", slot: "trail", label: "Blue Flame Trail", cost: 200, desc: "A cool blue flame wake behind the hoverboard.", cosmetic: "blueFlame", photo: "blueflame" },
+      { id: "trailGreen", category: "cosmetics", type: "cosmetic", slot: "trail", label: "Green Ion Trail", cost: 500, desc: "Bright green ion sparks under the board.", cosmetic: "greenIon", photo: "greenion" },
+      { id: "trailPurple", category: "cosmetics", type: "cosmetic", slot: "trail", label: "Purple Comet Trail", cost: 1000, desc: "Purple comet streaks during fast movement.", cosmetic: "purpleComet", photo: "purplecomet" },
+      { id: "trailRainbow", category: "cosmetics", type: "cosmetic", slot: "trail", label: "Rainbow Hyperdrive Trail", cost: 2500, desc: "Multicolor hyperdrive exhaust trail.", cosmetic: "rainbowHyperdrive", photo: "rainbow" },
+      { id: "trailBlackHole", category: "cosmetics", type: "cosmetic", slot: "trail", label: "Black Hole Trail", cost: 6000, coreCost: 12, desc: "Dark gravity wake with purple event-horizon glow.", cosmetic: "blackHole", photo: "blackhole" },
+      { id: "suitRookie", category: "cosmetics", type: "cosmetic", slot: "suit", label: "Rookie Astronaut Suit", cost: 300, desc: "Fresh white suit with rookie green trim.", cosmetic: "rookieSuit", photo: "rookiesuit" },
+      { id: "suitMars", category: "cosmetics", type: "cosmetic", slot: "suit", label: "Red Mars Suit", cost: 800, desc: "Mars-red suit plates and dark visor trim.", cosmetic: "redMars", photo: "redmars" },
+      { id: "suitCyber", category: "cosmetics", type: "cosmetic", slot: "suit", label: "Cyber Pilot Suit", cost: 1800, desc: "Cyber flight suit with cyan-green highlights.", cosmetic: "cyberPilot", photo: "cyberpilot" },
+      { id: "suitHunter", category: "cosmetics", type: "cosmetic", slot: "suit", label: "Alien Hunter Suit", cost: 4000, desc: "Heavy hunter trim for elite drone chasers.", cosmetic: "alienHunter", photo: "alienhunter" },
+      { id: "suitGold", category: "cosmetics", type: "cosmetic", slot: "suit", label: "Golden Star Commander Suit", cost: 9000, coreCost: 20, desc: "Premium golden commander suit.", cosmetic: "goldenCommander", photo: "goldencommander" },
+      { id: "reticleGreen", category: "cosmetics", type: "cosmetic", slot: "reticle", label: "Classic Green Reticle", cost: 0, desc: "The default green targeting reticle.", cosmetic: "classicGreen", photo: "greenreticle" },
+      { id: "reticleCyan", category: "cosmetics", type: "cosmetic", slot: "reticle", label: "Cyan Lock-On Reticle", cost: 250, desc: "Cyan lock-on targeting display.", cosmetic: "cyanLock", photo: "cyreticle" },
+      { id: "reticleOrange", category: "cosmetics", type: "cosmetic", slot: "reticle", label: "Orange Blaster Reticle", cost: 500, desc: "Orange blaster-style aiming ring.", cosmetic: "orangeBlaster", photo: "orangereticle" },
+      { id: "reticlePurple", category: "cosmetics", type: "cosmetic", slot: "reticle", label: "Purple Galaxy Reticle", cost: 1000, desc: "Purple galaxy targeting effect.", cosmetic: "purpleGalaxy", photo: "purplereticle" },
+      { id: "reticleRed", category: "cosmetics", type: "cosmetic", slot: "reticle", label: "Red Targeting Reticle", cost: 1500, desc: "Sharp red combat targeting ring.", cosmetic: "redTargeting", photo: "redreticle" }
+    ];
+
+    const shopItems = [...boostItems, ...upgradeItems, ...cosmeticItems];
+    let activeShopCategory = "boosts";
+
+    const defaultProfile = {
+      totalCrystals: 0,
+      starCores: 0,
+      highScore: 0,
+      dailyDate: "",
+      dailyStats: {},
+      lifetimeStats: {},
+      dailyClaims: {},
+      lifetimeClaims: {},
+      boosts: { dash: 0, slow: 0, shield: 0, rapid: 0, magnet: 0, emergencyShield: 0, doubleCrystals: 0, comboSaver: 0 },
+      selectedBoosts: { dash: false, slow: false, shield: false, rapid: false, magnet: false, emergencyShield: false, doubleCrystals: false, comboSaver: false },
+      upgrades: { dashCapacity: 0, weaponCooldown: 0, shieldDuration: 0, magnetRange: 0, slowDuration: 0, startingHealth: 0, comboMultiplier: 0, crystalBonus: 0 },
+      cosmetics: { classicGreen: true },
+      equipped: { board: "default", trail: "greenIon", suit: "default", reticle: "classicGreen" },
+      selectedCosmetic: "default"
+    };
+
+    function loadProfile() {
+      try {
+        return { ...defaultProfile, ...JSON.parse(localStorage.getItem("starlineProfile") || "{}") };
+      } catch {
+        return structuredClone(defaultProfile);
+      }
+    }
+
+    const profile = loadProfile();
+    profile.boosts = { ...defaultProfile.boosts, ...(profile.boosts || {}) };
+    profile.selectedBoosts = { ...defaultProfile.selectedBoosts, ...(profile.selectedBoosts || {}) };
+    profile.upgrades = { ...defaultProfile.upgrades, ...(profile.upgrades || {}) };
+    profile.cosmetics = { ...defaultProfile.cosmetics, ...(profile.cosmetics || {}) };
+    profile.equipped = { ...defaultProfile.equipped, ...(profile.equipped || {}) };
+    profile.dailyStats = { ...(profile.dailyStats || {}) };
+    profile.lifetimeStats = { ...(profile.lifetimeStats || {}) };
+    profile.dailyClaims = { ...(profile.dailyClaims || {}) };
+    profile.lifetimeClaims = { ...(profile.lifetimeClaims || {}) };
+
+    const missionDefs = {
+      daily: [
+        { id: "dailyCrystals", title: "Crystal Cargo", desc: "Collect 250 crystals today.", stat: "crystals", goal: 250, crystals: 150 },
+        { id: "dailyEnemies", title: "Route Defense", desc: "Destroy 15 enemies today.", stat: "enemies", goal: 15, crystals: 200, cores: 1 },
+        { id: "dailyDistance", title: "Long Burn", desc: "Travel 1,000 meters today.", stat: "distance", goal: 1000, crystals: 175 },
+        { id: "dailySlides", title: "Low Profile", desc: "Use slide 10 times today.", stat: "slides", goal: 10, crystals: 125 },
+        { id: "dailyPowers", title: "Systems Online", desc: "Collect 3 powerups today.", stat: "powerups", goal: 3, crystals: 150 },
+        { id: "dailyMeteors", title: "Meteor Breaker", desc: "Destroy 5 meteors today.", stat: "meteors", goal: 5, crystals: 225, cores: 2 }
+      ],
+      lifetime: [
+        { id: "lifeDistance", title: "Starline Veteran", desc: "Travel 10,000 total meters.", stat: "distance", goal: 10000, crystals: 1000, cores: 5 },
+        { id: "lifeEnemies", title: "Drone Hunter", desc: "Destroy 500 enemies.", stat: "enemies", goal: 500, crystals: 1800, cores: 10 },
+        { id: "lifeCrystals", title: "Crystal Courier", desc: "Collect 10,000 crystals.", stat: "crystals", goal: 10000, crystals: 2500, cores: 12 },
+        { id: "lifeBestRun", title: "Deep Route", desc: "Reach 5,000 meters in one run.", stat: "bestDistance", goal: 5000, crystals: 2000, cores: 15 },
+        { id: "lifeShop", title: "Gear Collector", desc: "Buy 10 shop items or upgrades.", stat: "shopBuys", goal: 10, crystals: 1200, cores: 8 },
+        { id: "lifeCombo", title: "Combo Pilot", desc: "Reach combo x20.", stat: "bestCombo", goal: 20, crystals: 1500, cores: 10 },
+        { id: "lifeRuns", title: "Courier Runs", desc: "Complete 50 total runs.", stat: "runs", goal: 50, crystals: 2200, cores: 20 }
+      ]
+    };
+    let activeMissionTab = "daily";
+
+    function todayKey() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function dailyResetCountdown() {
+      const now = new Date();
+      const next = new Date(now);
+      next.setHours(24, 0, 0, 0);
+      const ms = Math.max(0, next - now);
+      const h = Math.floor(ms / 3600000);
+      const m = Math.floor((ms % 3600000) / 60000);
+      const s = Math.floor((ms % 60000) / 1000);
+      return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    }
+
+    function ensureDailyMissions() {
+      const today = todayKey();
+      if (profile.dailyDate !== today) {
+        profile.dailyDate = today;
+        profile.dailyStats = {};
+        profile.dailyClaims = {};
+      }
+    }
+
+    ensureDailyMissions();
+
+    function addStat(key, amount = 1) {
+      ensureDailyMissions();
+      profile.dailyStats[key] = (profile.dailyStats[key] || 0) + amount;
+      profile.lifetimeStats[key] = (profile.lifetimeStats[key] || 0) + amount;
+    }
+
+    function maxStat(key, value) {
+      ensureDailyMissions();
+      profile.dailyStats[key] = Math.max(profile.dailyStats[key] || 0, value);
+      profile.lifetimeStats[key] = Math.max(profile.lifetimeStats[key] || 0, value);
+    }
+
+    function saveProfile() {
+      ensureDailyMissions();
+      localStorage.setItem("starlineProfile", JSON.stringify(profile));
+      updateWalletUI();
+    }
+
+    function updateWalletUI() {
+      ensureDailyMissions();
+      const total = document.getElementById("totalCrystals");
+      if (total) total.textContent = Math.floor(profile.totalCrystals).toLocaleString();
+      const totalCores = document.getElementById("totalStarCores");
+      if (totalCores) totalCores.textContent = Math.floor(profile.starCores || 0).toLocaleString();
+      const shopBalance = document.getElementById("shopCrystalBalance");
+      if (shopBalance) shopBalance.textContent = Math.floor(profile.totalCrystals).toLocaleString();
+      const shopCoreBalance = document.getElementById("shopCoreBalance");
+      if (shopCoreBalance) shopCoreBalance.textContent = Math.floor(profile.starCores || 0).toLocaleString();
+      const loadoutBalance = document.getElementById("loadoutCrystalBalance");
+      if (loadoutBalance) loadoutBalance.textContent = Math.floor(profile.totalCrystals).toLocaleString();
+      const loadoutCoreBalance = document.getElementById("loadoutCoreBalance");
+      if (loadoutCoreBalance) loadoutCoreBalance.textContent = Math.floor(profile.starCores || 0).toLocaleString();
+      const missionCrystalBalance = document.getElementById("missionCrystalBalance");
+      if (missionCrystalBalance) missionCrystalBalance.textContent = Math.floor(profile.totalCrystals).toLocaleString();
+      const missionCoreBalance = document.getElementById("missionCoreBalance");
+      if (missionCoreBalance) missionCoreBalance.textContent = Math.floor(profile.starCores || 0).toLocaleString();
+      const highScore = document.getElementById("highScore");
+      if (highScore) highScore.textContent = Math.floor(profile.highScore || 0).toLocaleString();
+    }
+
+    const audio = {
+      ctx: null,
+      master: null,
+      hum: null,
+      humGain: null
+    };
+
+    function ensureAudio() {
+      if (!audio.ctx) {
+        audio.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        audio.master = audio.ctx.createGain();
+        audio.master.gain.value = .28;
+        audio.master.connect(audio.ctx.destination);
+      }
+      if (audio.ctx.state === "suspended") audio.ctx.resume();
+    }
+
+    function tone(freq, duration = .12, type = "sine", volume = .28, slideTo = null) {
+      if (!audio.ctx) return;
+      const now = audio.ctx.currentTime;
+      const osc = audio.ctx.createOscillator();
+      const gain = audio.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      if (slideTo) osc.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), now + duration);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(volume, now + .01);
+      gain.gain.exponentialRampToValueAtTime(.001, now + duration);
+      osc.connect(gain);
+      gain.connect(audio.master);
+      osc.start(now);
+      osc.stop(now + duration + .02);
+    }
+
+    function noiseBurst(duration = .12, volume = .18) {
+      if (!audio.ctx) return;
+      const now = audio.ctx.currentTime;
+      const buffer = audio.ctx.createBuffer(1, audio.ctx.sampleRate * duration, audio.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+      const src = audio.ctx.createBufferSource();
+      const gain = audio.ctx.createGain();
+      gain.gain.setValueAtTime(volume, now);
+      gain.gain.exponentialRampToValueAtTime(.001, now + duration);
+      src.buffer = buffer;
+      src.connect(gain);
+      gain.connect(audio.master);
+      src.start(now);
+    }
+
+    function startHum() {
+      return;
+    }
+
+    function stopHum() {
+      if (!audio.hum) return;
+      audio.hum.stop();
+      audio.hum.disconnect();
+      audio.humGain.disconnect();
+      audio.hum = null;
+      audio.humGain = null;
+    }
+
+    const sfx = {
+      start() { ensureAudio(); startHum(); tone(180, .18, "sawtooth", .22, 420); setTimeout(() => tone(520, .22, "triangle", .2, 880), 110); },
+      jump() { tone(360, .12, "triangle", .16, 760); },
+      slide() { noiseBurst(.16, .12); tone(120, .13, "sawtooth", .1, 70); },
+      lane() { tone(260, .07, "square", .08, 330); },
+      shoot() { tone(740, .11, "sawtooth", .16, 1280); noiseBurst(.05, .05); },
+      crystal() { tone(920, .08, "triangle", .13, 1320); },
+      power() { tone(420, .12, "sine", .16, 840); setTimeout(() => tone(1040, .12, "triangle", .12), 90); },
+      hit() { noiseBurst(.24, .22); tone(170, .22, "sawtooth", .18, 75); },
+      enemy() { tone(220, .12, "square", .12, 480); },
+      over() { stopHum(); tone(220, .3, "sawtooth", .18, 80); }
+    };
+
+    const pools = {
+      road: [],
+      hazards: [],
+      crystals: [],
+      enemies: [],
+      bullets: [],
+      enemyShots: [],
+      powerups: [],
+      particles: []
+    };
+
+    const mats = {
+      road: new THREE.MeshStandardMaterial({ color: 0x041334, metalness: 0.68, roughness: 0.24, emissive: 0x03102e, emissiveIntensity: 1.05 }),
+      cyan: new THREE.MeshStandardMaterial({ color: 0x74ffb0, emissive: 0x2bff8d, emissiveIntensity: 4.2, metalness: 0.28, roughness: 0.12 }),
+      orange: new THREE.MeshStandardMaterial({ color: 0xaaff45, emissive: 0x76ff22, emissiveIntensity: 4.0, metalness: 0.18, roughness: 0.17 }),
+      red: new THREE.MeshStandardMaterial({ color: 0x54ff6d, emissive: 0x21ff5c, emissiveIntensity: 4.2, metalness: 0.2, roughness: 0.14 }),
+      pink: new THREE.MeshStandardMaterial({ color: 0x9dff60, emissive: 0x4dff31, emissiveIntensity: 3.0, metalness: 0.25, roughness: 0.2 }),
+      crystal: new THREE.MeshBasicMaterial({ color: 0x20ff35 }),
+      white: new THREE.MeshStandardMaterial({ color: 0xdcecff, metalness: 0.45, roughness: 0.28, emissive: 0x18335c, emissiveIntensity: 0.4 }),
+      suit: new THREE.MeshStandardMaterial({ color: 0xf7fbff, metalness: 0.22, roughness: 0.34, emissive: 0x162033, emissiveIntensity: .22 }),
+      suitTrim: new THREE.MeshStandardMaterial({ color: 0xc8d4df, metalness: 0.48, roughness: 0.26, emissive: 0x0b1528, emissiveIntensity: .18 }),
+      metal: new THREE.MeshStandardMaterial({ color: 0x8b929a, metalness: 0.86, roughness: 0.22, emissive: 0x0c1118, emissiveIntensity: .22 }),
+      wheel: new THREE.MeshStandardMaterial({ color: 0x151b24, metalness: 0.42, roughness: 0.3, emissive: 0x071014, emissiveIntensity: .12 }),
+      dark: new THREE.MeshStandardMaterial({ color: 0x071029, metalness: 0.72, roughness: 0.25, emissive: 0x020815, emissiveIntensity: 0.8 }),
+      pillar: new THREE.MeshStandardMaterial({ color: 0x7f8790, metalness: 0.78, roughness: 0.24, emissive: 0x111a1f, emissiveIntensity: .28 }),
+      glass: new THREE.MeshStandardMaterial({ color: 0xb7ffd2, transparent: true, opacity: 0.72, metalness: 0.1, roughness: 0.06, emissive: 0x35ff93, emissiveIntensity: 1.7 }),
+      green: new THREE.MeshStandardMaterial({ color: 0x7dff78, emissive: 0x47ff4d, emissiveIntensity: 2.5 }),
+      meteor: new THREE.MeshStandardMaterial({ color: 0x263348, roughness: 0.92, emissive: 0x0b7d55, emissiveIntensity: 0.22 }),
+      shield: new THREE.MeshStandardMaterial({ color: 0x6cff9a, transparent: true, opacity: 0.22, emissive: 0x29ff75, emissiveIntensity: 1.1, side: THREE.DoubleSide })
+    };
+
+    const powerupStyles = {
+      shield: { label: "Shield", color: 0x43e7ff, glow: "#43e7ff" },
+      rapid: { label: "Rapid Fire", color: 0x70ff22, glow: "#70ff22" },
+      slow: { label: "Slow", color: 0xb26bff, glow: "#b26bff" },
+      dash: { label: "Dash", color: 0x43e7ff, glow: "#43e7ff" },
+      magnet: { label: "Magnet", color: 0x20dfff, glow: "#20dfff" },
+      double: { label: "2x Crystals", color: 0x38ff5e, glow: "#38ff5e" },
+      starcore: { label: "Core", color: 0x9d77ff, glow: "#9d77ff" }
+    };
+
+    function applyCosmetic() {
+      const board = profile.equipped?.board || "default";
+      const suit = profile.equipped?.suit || "default";
+      if (board === "neonRookie") {
+        mats.metal.color.setHex(0x3a7d62);
+        mats.metal.emissive.setHex(0x063922);
+      } else if (board === "solarGlide") {
+        mats.metal.color.setHex(0x9a5b24);
+        mats.metal.emissive.setHex(0x4a1d06);
+      } else if (board === "meteorTrail") {
+        mats.metal.color.setHex(0x202936);
+        mats.metal.emissive.setHex(0x421808);
+      } else if (board === "plasmaWing") {
+        mats.metal.color.setHex(0xbfefff);
+        mats.metal.emissive.setHex(0x0a3650);
+      } else if (board === "galaxyPhantom") {
+        mats.metal.color.setHex(0x2b244c);
+        mats.metal.emissive.setHex(0x1e0d45);
+      } else if (board === "voidEmperor") {
+        mats.metal.color.setHex(0x090b12);
+        mats.metal.emissive.setHex(0x17072e);
+      } else {
+        mats.metal.color.setHex(0x8b929a);
+        mats.metal.emissive.setHex(0x0c1118);
+      }
+
+      if (suit === "redMars") {
+        mats.suitTrim.color.setHex(0xc44135);
+      } else if (suit === "cyberPilot") {
+        mats.suitTrim.color.setHex(0x43e7ff);
+      } else if (suit === "alienHunter") {
+        mats.suitTrim.color.setHex(0x7dff6a);
+      } else if (suit === "goldenCommander") {
+        mats.suitTrim.color.setHex(0xffedb0);
+      } else if (suit === "rookieSuit") {
+        mats.suitTrim.color.setHex(0xb7ffe0);
+      } else {
+        mats.suitTrim.color.setHex(0xc8d4df);
+      }
+
+      const reticles = {
+        classicGreen: "#7dff6a",
+        cyanLock: "#43e7ff",
+        orangeBlaster: "#ff9c35",
+        purpleGalaxy: "#b26bff",
+        redTargeting: "#ff4d6d"
+      };
+      const reticleColor = reticles[profile.equipped?.reticle] || reticles.classicGreen;
+      reticle.style.borderColor = reticleColor;
+      reticle.style.boxShadow = `0 0 18px ${reticleColor}, inset 0 0 18px ${reticleColor}55`;
+      reticle.querySelector(".dot").style.background = reticleColor;
+
+      const legacySelected = profile.selectedCosmetic || "";
+      if (!profile.equipped?.board && legacySelected === "chrome") {
+        mats.metal.color.setHex(0xc8ced6);
+        mats.metal.emissive.setHex(0x1b2430);
+      }
+    }
+
+    function renderShop() {
+      updateWalletUI();
+      const grid = document.getElementById("shopGrid");
+      if (!grid) return;
+      document.querySelectorAll(".shop-filter").forEach((button) => {
+        button.classList.toggle("active", button.dataset.shopCategory === activeShopCategory);
+      });
+      grid.innerHTML = "";
+      const visibleItems = shopItems
+        .filter((entry) => entry.category === activeShopCategory)
+        .sort((a, b) => {
+          const priceFor = (item) => item.type === "upgrade"
+            ? item.prices[profile.upgrades[item.key] || 0] ?? Number.POSITIVE_INFINITY
+            : item.cost;
+          return priceFor(a) - priceFor(b);
+        });
+      for (const item of visibleItems) {
+        const level = item.type === "upgrade" ? profile.upgrades[item.key] || 0 : 0;
+        const maxLevel = item.type === "upgrade" ? item.prices.length : 0;
+        const owned = item.type === "cosmetic" && profile.cosmetics[item.cosmetic];
+        const selected = item.type === "cosmetic" && profile.equipped?.[item.slot] === item.cosmetic;
+        const stock = item.type === "boost" ? profile.boosts[item.effect] || 0 : 0;
+        const cost = item.type === "upgrade" ? item.prices[level] : item.cost;
+        const soldOut = item.type === "upgrade" && level >= maxLevel;
+        const needsPurchase = item.type !== "cosmetic" || !owned;
+        const coreCost = item.coreCost || 0;
+        const cannotAfford = !soldOut && needsPurchase && (cost > profile.totalCrystals || coreCost > (profile.starCores || 0));
+        const disabled = selected || soldOut || cannotAfford;
+        const meta =
+          item.type === "boost" ? `Owned: ${stock}` :
+          item.type === "upgrade" ? `Level ${level}/${maxLevel}` :
+          selected ? "Equipped" : owned ? "Owned" : item.slot;
+        const typeLabel = item.type === "boost" ? "Boost" : item.type === "upgrade" ? "Upgrade" : "Cosmetic";
+        const effect =
+          item.type === "upgrade" ? `${soldOut ? "Fully upgraded." : `Next cost: ${cost} crystals.`}` :
+          selected ? "Currently equipped." : owned ? "Owned. Ready to equip." : "";
+        const card = document.createElement("div");
+        card.className = `shop-card ${item.type}`;
+        const buttonLabel =
+          cannotAfford ? "Cannot Afford" :
+          item.type === "boost" ? `Buy ${item.cost}` :
+          item.type === "upgrade" ? (soldOut ? "Maxed" : `Upgrade ${cost}`) :
+          selected ? "Equipped" :
+          owned ? "Equip" :
+          item.cost === 0 && !coreCost ? "Equip" : `Buy ${item.cost}${coreCost ? ` + ${coreCost} cores` : ""}`;
+        const priceLabel =
+          item.type === "upgrade" ? (soldOut ? "Max Level" : `${cost} crystals`) :
+          selected ? "Equipped" :
+          owned ? "Owned" :
+          item.cost === 0 && !coreCost ? "Free" : `${item.cost} crystals${coreCost ? ` + ${coreCost} cores` : ""}`;
+        const photo = item.photo || (item.type === "boost" ? item.effect : item.cosmetic);
+        card.innerHTML = `
+          <div class="shop-photo ${photo}" aria-hidden="true"></div>
+          <div class="shop-info">
+            <h3>${item.label}</h3>
+            <div class="shop-type">${typeLabel}</div>
+            <p>${item.desc}</p>
+            <div class="shop-status">${meta}</div>
+            ${effect ? `<div class="shop-effect">${effect}</div>` : ""}
+          </div>
+          <div class="shop-action">
+            <div class="shop-price">${priceLabel}</div>
+            <button data-shop-id="${item.id}" ${disabled ? "disabled" : ""}>${buttonLabel}</button>
+          </div>
+        `;
+        grid.appendChild(card);
+      }
+    }
+
+    function renderLoadout() {
+      updateWalletUI();
+      const grid = document.getElementById("loadoutGrid");
+      if (!grid) return;
+      const boostRows = boostItems.map((item) => {
+        const owned = profile.boosts[item.effect] || 0;
+        const selected = !!profile.selectedBoosts[item.effect] && owned > 0;
+        return `<div class="loadout-row">
+          <span>${item.label} <span class="yellow">x${owned}</span></span>
+          <button data-loadout-boost="${item.effect}" class="${selected ? "selected" : ""}" ${owned <= 0 ? "disabled" : ""}>${selected ? "Selected" : "Use"}</button>
+        </div>`;
+      }).join("");
+      const upgradeRows = upgradeItems.map((item) => `<div class="loadout-row"><span>${item.label}</span><span>Level ${profile.upgrades[item.key] || 0}/${item.prices.length}</span></div>`).join("");
+      const equippedRows = [
+        ["Board", profile.equipped.board || "default"],
+        ["Trail", profile.equipped.trail || "greenIon"],
+        ["Suit", profile.equipped.suit || "default"],
+        ["Reticle", profile.equipped.reticle || "classicGreen"]
+      ].map(([label, value]) => `<div class="loadout-row"><span>${label}</span><span>${value.replace(/([A-Z])/g, " $1")}</span></div>`).join("");
+      grid.innerHTML = `
+        <div class="loadout-section"><h3>One-Run Boosts</h3><div class="loadout-list">${boostRows}</div></div>
+        <div class="loadout-section"><h3>Permanent Upgrades</h3><div class="loadout-list">${upgradeRows}</div></div>
+        <div class="loadout-section"><h3>Equipped Cosmetics</h3><div class="loadout-list">${equippedRows}</div></div>
+        <div class="loadout-section"><h3>Crystal Balance</h3><div class="big yellow">${Math.floor(profile.totalCrystals).toLocaleString()}</div></div>
+      `;
+    }
+
+    function renderMissions() {
+      updateWalletUI();
+      const list = document.getElementById("missionList");
+      if (!list) return;
+      const countdown = document.getElementById("dailyCountdown");
+      if (countdown) {
+        countdown.classList.toggle("hidden", activeMissionTab !== "daily");
+        countdown.textContent = `Daily missions reset in ${dailyResetCountdown()}`;
+      }
+      document.querySelectorAll("[data-mission-tab]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.missionTab === activeMissionTab);
+      });
+      const stats = activeMissionTab === "daily" ? profile.dailyStats : profile.lifetimeStats;
+      const claims = activeMissionTab === "daily" ? profile.dailyClaims : profile.lifetimeClaims;
+      list.innerHTML = missionDefs[activeMissionTab].map((mission) => {
+        const progress = Math.min(mission.goal, Math.floor(stats[mission.stat] || 0));
+        const ready = progress >= mission.goal;
+        const claimed = !!claims[mission.id];
+        const pct = Math.min(100, Math.round((progress / mission.goal) * 100));
+        const reward = `${mission.crystals || 0} crystals${mission.cores ? ` + ${mission.cores} cores` : ""}`;
+        return `<div class="mission-card">
+          <div>
+            <h3>${mission.title}</h3>
+            <p>${mission.desc}</p>
+            <div class="mission-progress" aria-label="${progress} of ${mission.goal}"><span style="--progress:${pct}%"></span></div>
+            <p>${progress.toLocaleString()} / ${mission.goal.toLocaleString()}</p>
+          </div>
+          <div class="mission-reward">
+            <div>${reward}</div>
+            <button class="menu-tab" data-claim-mission="${mission.id}" ${!ready || claimed ? "disabled" : ""}>${claimed ? "Claimed" : ready ? "Claim" : "Locked"}</button>
+          </div>
+        </div>`;
+      }).join("");
+    }
+
+    function claimMission(id) {
+      const mission = missionDefs[activeMissionTab].find((entry) => entry.id === id);
+      if (!mission) return;
+      const stats = activeMissionTab === "daily" ? profile.dailyStats : profile.lifetimeStats;
+      const claims = activeMissionTab === "daily" ? profile.dailyClaims : profile.lifetimeClaims;
+      if (claims[id] || (stats[mission.stat] || 0) < mission.goal) return;
+      claims[id] = true;
+      profile.totalCrystals += mission.crystals || 0;
+      profile.starCores = (profile.starCores || 0) + (mission.cores || 0);
+      sfx.power();
+      saveProfile();
+      renderMissions();
+    }
+
+    function toggleLoadoutBoost(effect) {
+      if ((profile.boosts[effect] || 0) <= 0) return;
+      profile.selectedBoosts[effect] = !profile.selectedBoosts[effect];
+      saveProfile();
+      renderLoadout();
+    }
+
+    function buyOrEquip(itemId) {
+      if (state.menu !== "main") return;
+      const item = shopItems.find((entry) => entry.id === itemId);
+      if (!item) return;
+      if (item.type === "boost") {
+        if (profile.totalCrystals < item.cost) return;
+        profile.totalCrystals -= item.cost;
+        profile.boosts[item.effect] = (profile.boosts[item.effect] || 0) + (item.amount || 1);
+        addStat("shopBuys", 1);
+        sfx.power();
+      } else if (item.type === "upgrade") {
+        const level = profile.upgrades[item.key] || 0;
+        const cost = item.prices[level];
+        if (level >= item.prices.length || profile.totalCrystals < cost) return;
+        profile.totalCrystals -= cost;
+        profile.upgrades[item.key] = level + 1;
+        addStat("shopBuys", 1);
+        sfx.power();
+      } else {
+        if (!profile.cosmetics[item.cosmetic]) {
+          if (profile.totalCrystals < item.cost || (profile.starCores || 0) < (item.coreCost || 0)) return;
+          profile.totalCrystals -= item.cost;
+          profile.starCores = (profile.starCores || 0) - (item.coreCost || 0);
+          profile.cosmetics[item.cosmetic] = true;
+          addStat("shopBuys", 1);
+          sfx.power();
+        }
+        profile.equipped[item.slot] = item.cosmetic;
+        applyCosmetic();
+      }
+      saveProfile();
+      renderShop();
+    }
+
+    function upgradeLevel(key) {
+      return profile.upgrades?.[key] || 0;
+    }
+
+    function shieldDuration() {
+      return 8 + upgradeLevel("shieldDuration") * 1.4;
+    }
+
+    function slowDuration() {
+      return 6 + upgradeLevel("slowDuration") * 1.15;
+    }
+
+    function magnetRange() {
+      return 9 + upgradeLevel("magnetRange") * 3.5;
+    }
+
+    function magnetLaneReach() {
+      return upgradeLevel("magnetRange") >= 2 ? 1 : 0;
+    }
+
+    function nearestLaneIndex(x) {
+      let best = 0;
+      let dist = Infinity;
+      for (let i = 0; i < laneX.length; i++) {
+        const d = Math.abs(x - laneX[i]);
+        if (d < dist) {
+          dist = d;
+          best = i;
+        }
+      }
+      return best;
+    }
+
+    function comboGain(amount) {
+      return amount * (1 + upgradeLevel("comboMultiplier") * .12);
+    }
+
+    function trailColor() {
+      const trail = profile.equipped?.trail || "greenIon";
+      if (trail === "blueFlame") return 0x43e7ff;
+      if (trail === "purpleComet") return 0xb26bff;
+      if (trail === "rainbowHyperdrive") return [0xff4d6d, 0xfff05a, 0x7dff6a, 0x43e7ff, 0xb26bff][Math.floor(Math.random() * 5)];
+      if (trail === "blackHole") return 0x7b4dff;
+      return 0x7dff6a;
+    }
+
+    function awardCrystals(base = 1) {
+      const doubled = state.doubleCrystals > 0 ? 2 : 1;
+      const bonus = 1 + upgradeLevel("crystalBonus") * .05;
+      state.crystalBank += base * doubled * bonus;
+      const whole = Math.floor(state.crystalBank);
+      if (whole <= 0) return 0;
+      state.crystalBank -= whole;
+      state.crystals += whole;
+      profile.totalCrystals += whole;
+      addStat("crystals", whole);
+      saveProfile();
+      return whole;
+    }
+
+    function collectCrystal(c) {
+      const gained = awardCrystals(1);
+      state.combo += comboGain(.25);
+      state.comboTimer = 0;
+      state.score += 18 * state.combo;
+      sfx.crystal();
+      spark(c.position, gained > 1 ? 0xd8ff56 : 0x74ffb0, 12);
+      removeFrom(pools.crystals, c);
+    }
+
+    scene.add(new THREE.HemisphereLight(0x8feeff, 0x09051c, 1.55));
+    const sun = new THREE.DirectionalLight(0xa8f2ff, 2.7);
+    sun.position.set(-8, 18, 10);
+    scene.add(sun);
+    const magenta = new THREE.PointLight(0x4dff8f, 3.4, 95);
+    magenta.position.set(9, 6, -22);
+    scene.add(magenta);
+    const amber = new THREE.PointLight(0xaaff45, 2.5, 90);
+    amber.position.set(-10, 5, -40);
+    scene.add(amber);
+
+    function addStars() {
+      const geo = new THREE.BufferGeometry();
+      const positions = [];
+      const colors = [];
+      for (let i = 0; i < 2800; i++) {
+        const r = 160 + Math.random() * 520;
+        const a = Math.random() * Math.PI * 2;
+        const y = -35 + Math.random() * 220;
+        positions.push(Math.cos(a) * r, y, Math.sin(a) * r - 180);
+        const c = new THREE.Color().setHSL(Math.random() < .18 ? 0.98 : 0.55 + Math.random() * 0.17, 0.85, 0.58 + Math.random() * 0.34);
+        colors.push(c.r, c.g, c.b);
+      }
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+      geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+      const mat = new THREE.PointsMaterial({ size: 1.35, vertexColors: true, transparent: true, opacity: 0.96, depthWrite: false });
+      scene.add(new THREE.Points(geo, mat));
+    }
+
+    function nebulaTexture(colorA, colorB) {
+      const cnv = document.createElement("canvas");
+      cnv.width = 256;
+      cnv.height = 256;
+      const ctx = cnv.getContext("2d");
+      ctx.clearRect(0, 0, 256, 256);
+      const grad = ctx.createRadialGradient(128, 128, 8, 128, 128, 128);
+      grad.addColorStop(0, colorA);
+      grad.addColorStop(.38, colorB);
+      grad.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 256, 256);
+      return new THREE.CanvasTexture(cnv);
+    }
+
+    function makeLabelSprite(text, color) {
+      const cnv = document.createElement("canvas");
+      cnv.width = 256;
+      cnv.height = 96;
+      const ctx = cnv.getContext("2d");
+      ctx.clearRect(0, 0, cnv.width, cnv.height);
+      ctx.font = "900 34px Segoe UI, Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = "rgba(2, 10, 28, .68)";
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 4;
+      roundRect(ctx, 18, 18, 220, 60, 10);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#f7fff8";
+      ctx.fillText(text.toUpperCase(), 128, 49);
+      const texture = new THREE.CanvasTexture(cnv);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
+      sprite.scale.set(2.5, .94, 1);
+      sprite.position.y = 1.25;
+      return sprite;
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    function addNebula() {
+      const textures = [
+        nebulaTexture("rgba(52,245,255,.42)", "rgba(31,94,255,.18)"),
+        nebulaTexture("rgba(255,44,76,.36)", "rgba(174,42,255,.14)"),
+        nebulaTexture("rgba(88,255,211,.28)", "rgba(30,75,170,.12)")
+      ];
+      const placements = [
+        [-44, 32, -205, 70, 38, 0],
+        [36, 30, -188, 82, 42, .24],
+        [0, 48, -260, 110, 58, -.15],
+        [-88, 12, -132, 64, 34, .35],
+        [86, 14, -118, 62, 36, -.35]
+      ];
+      for (let i = 0; i < placements.length; i++) {
+        const [x, y, z, w, h, rot] = placements[i];
+        const mat = new THREE.SpriteMaterial({ map: textures[i % textures.length], transparent: true, opacity: .78, depthWrite: false, blending: THREE.AdditiveBlending });
+        const sprite = new THREE.Sprite(mat);
+        sprite.position.set(x, y, z);
+        sprite.scale.set(w, h, 1);
+        sprite.material.rotation = rot;
+        scene.add(sprite);
+      }
+    }
+
+    function planet(x, y, z, radius, color, glow) {
+      const group = new THREE.Group();
+      const p = new THREE.Mesh(
+        new THREE.SphereGeometry(radius, 48, 32),
+        new THREE.MeshStandardMaterial({ color, roughness: 0.72, metalness: 0.05, emissive: glow, emissiveIntensity: 0.18 })
+      );
+      const halo = new THREE.Mesh(
+        new THREE.SphereGeometry(radius * 1.05, 48, 32),
+        new THREE.MeshBasicMaterial({ color: glow, transparent: true, opacity: 0.18, side: THREE.BackSide })
+      );
+      group.add(p, halo);
+      for (let i = -2; i <= 2; i++) {
+        const band = new THREE.Mesh(
+          new THREE.TorusGeometry(radius * (0.72 + Math.abs(i) * .055), .12 + radius * .003, 8, 80),
+          new THREE.MeshBasicMaterial({ color: i % 2 ? glow : 0x8dff6a, transparent: true, opacity: .12 })
+        );
+        band.rotation.x = Math.PI / 2 + i * .035;
+        band.position.y = i * radius * .13;
+        group.add(band);
+      }
+      group.position.set(x, y, z);
+      scene.add(group);
+      return group;
+    }
+
+    addStars();
+    addNebula();
+    const planets = [
+      planet(-78, 37, -172, 43, 0x9b7768, 0xa6e6ff),
+      planet(78, 47, -215, 46, 0x263a63, 0x6ee7ff),
+      planet(98, -2, -120, 27, 0x78665d, 0xd2efff),
+      planet(-18, 64, -292, 14, 0x25486d, 0x74ff9f)
+    ];
+
+    function station(x, y, z, s = 1) {
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(2.8 * s, 4.6 * s, 1.6 * s, 22), mats.dark);
+      body.rotation.z = Math.PI / 2;
+      g.add(body);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(4.5 * s, .22 * s, 16, 42), mats.cyan);
+      ring.rotation.y = Math.PI / 2;
+      g.add(ring);
+      const tower = new THREE.Mesh(new THREE.CylinderGeometry(.5 * s, .7 * s, 9 * s, 10), mats.dark);
+      tower.position.y = -4.6 * s;
+      g.add(tower);
+      for (let i = 0; i < 8; i++) {
+        const fin = new THREE.Mesh(new THREE.BoxGeometry(.26 * s, .55 * s, 3.8 * s), i % 2 ? mats.cyan : mats.pink);
+        fin.position.set(Math.cos(i) * 3.3 * s, .2 * s, Math.sin(i) * 3.3 * s);
+        fin.rotation.y = i;
+        g.add(fin);
+      }
+      g.position.set(x, y, z);
+      scene.add(g);
+      return g;
+    }
+    const stations = [station(-38, 22, -128, 1.35), station(48, 18, -152, 1.05), station(18, 30, -235, .82), station(-72, 12, -96, .62), station(78, 28, -250, .58)];
+
+    function backgroundShip(x, y, z, s = 1) {
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.ConeGeometry(.7 * s, 4.8 * s, 5), mats.dark);
+      body.rotation.x = Math.PI / 2;
+      g.add(body);
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(4.2 * s, .12 * s, .8 * s), mats.cyan);
+      wing.position.z = .4 * s;
+      g.add(wing);
+      const engine = new THREE.Mesh(new THREE.ConeGeometry(.28 * s, 1.5 * s, 18), mats.red);
+      engine.rotation.x = -Math.PI / 2;
+      engine.position.z = 2.5 * s;
+      g.add(engine);
+      g.position.set(x, y, z);
+      g.rotation.set(.1, x < 0 ? -.55 : .45, .05);
+      scene.add(g);
+      return g;
+    }
+    const bgShips = [
+      backgroundShip(-54, 30, -145, 1.15),
+      backgroundShip(58, 33, -178, .9),
+      backgroundShip(22, 42, -246, .65),
+      backgroundShip(-9, 25, -112, .45)
+    ];
+
+    function asteroidBelt() {
+      for (let i = 0; i < 70; i++) {
+        const a = new THREE.Mesh(new THREE.DodecahedronGeometry(.4 + Math.random() * 2.3, 0), mats.meteor);
+        const side = Math.random() < .5 ? -1 : 1;
+        a.position.set(side * (17 + Math.random() * 95), -8 + Math.random() * 34, -24 - Math.random() * 290);
+        a.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+        a.userData.spin = new THREE.Vector3(Math.random(), Math.random(), Math.random()).multiplyScalar(.18);
+        scene.add(a);
+        pools.particles.push(a);
+      }
+    }
+    asteroidBelt();
+
+    function makeRoadSegment(z) {
+      const g = new THREE.Group();
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(15.6, .25, 34), mats.road);
+      deck.position.y = -0.25;
+      g.add(deck);
+
+      const centerSheen = new THREE.Mesh(new THREE.BoxGeometry(12.2, .035, 34), new THREE.MeshStandardMaterial({
+        color: 0x0a245d,
+        metalness: .48,
+        roughness: .18,
+        transparent: true,
+        opacity: .5,
+        emissive: 0x08226d,
+        emissiveIntensity: .62
+      }));
+      centerSheen.position.y = -.09;
+      g.add(centerSheen);
+
+      for (const x of [-2.2, 2.2]) {
+        const line = new THREE.Mesh(new THREE.BoxGeometry(.16, .1, 34), mats.cyan);
+        line.position.set(x, .02, 0);
+        g.add(line);
+        const glow = new THREE.Mesh(new THREE.BoxGeometry(.7, .035, 34), new THREE.MeshBasicMaterial({ color: 0x53ff9f, transparent: true, opacity: .26, blending: THREE.AdditiveBlending }));
+        glow.position.set(x, .055, 0);
+        g.add(glow);
+      }
+      for (const x of [-6.9, 6.9]) {
+        const edge = new THREE.Mesh(new THREE.BoxGeometry(.18, .1, 34), mats.orange);
+        edge.position.set(x, .06, 0);
+        g.add(edge);
+        const edgeGlow = new THREE.Mesh(new THREE.BoxGeometry(.58, .035, 34), new THREE.MeshBasicMaterial({ color: 0x9dff60, transparent: true, opacity: .18, blending: THREE.AdditiveBlending }));
+        edgeGlow.position.set(x, .07, 0);
+        g.add(edgeGlow);
+        const blueEdge = new THREE.Mesh(new THREE.BoxGeometry(.1, .08, 34), mats.cyan);
+        blueEdge.position.set(x + Math.sign(x) * .42, .08, 0);
+        g.add(blueEdge);
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(.35, .62, 34), mats.dark);
+        rail.position.set(x + Math.sign(x) * .7, .38, 0);
+        g.add(rail);
+      }
+      for (let i = -14; i <= 14; i += 7) {
+        for (const x of [-8.15, 8.15]) {
+          const post = new THREE.Mesh(new THREE.BoxGeometry(.72, 2.35, .68), mats.pillar);
+          post.position.set(x, 1.08, i);
+          g.add(post);
+          for (const y of [.72, 1.42, 1.86]) {
+            const band = new THREE.Mesh(new THREE.BoxGeometry(.82, .14, .76), mats.green);
+            band.position.set(x, y, i);
+            g.add(band);
+          }
+        }
+      }
+      g.position.z = z;
+      scene.add(g);
+      return g;
+    }
+    for (let i = 0; i < 9; i++) pools.road.push(makeRoadSegment(-i * 34 + 8));
+
+    function makeAstronaut() {
+      const g = new THREE.Group();
+      g.name = "PlayerRoot";
+      const visual = new THREE.Group();
+      visual.name = "PlayerVisual";
+      const board = new THREE.Group();
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(1.62, .18, 2.95), mats.metal);
+      deck.position.y = .28;
+      deck.rotation.x = .018;
+      board.add(deck);
+      const deckPad = new THREE.Mesh(new THREE.BoxGeometry(1.12, .045, 1.88), mats.dark);
+      deckPad.position.y = .4;
+      board.add(deckPad);
+      for (const z of [-.58, .58]) {
+        const grip = new THREE.Mesh(new THREE.BoxGeometry(1.02, .052, .42), mats.pillar);
+        grip.position.set(0, .445, z);
+        board.add(grip);
+      }
+      for (const z of [-1.24, 1.24]) {
+        const cap = new THREE.Mesh(new THREE.CylinderGeometry(.82, .82, .18, 8), mats.metal);
+        cap.scale.z = .28;
+        cap.rotation.x = Math.PI / 2;
+        cap.position.set(0, .28, z);
+        board.add(cap);
+      }
+      for (const z of [-1.24, 1.24, -.2, .2]) {
+        const deckLight = new THREE.Mesh(new THREE.BoxGeometry(1.28, .045, .07), Math.abs(z) > 1 ? mats.cyan : mats.green);
+        deckLight.position.set(0, .41, z);
+        board.add(deckLight);
+      }
+      for (const x of [-.74, .74]) {
+        const sideRail = new THREE.Mesh(new THREE.BoxGeometry(.08, .08, 2.48), mats.cyan);
+        sideRail.position.set(x, .44, 0);
+        board.add(sideRail);
+      }
+      for (const z of [-1.12, 1.12]) {
+        const hoverRing = new THREE.Mesh(new THREE.TorusGeometry(.34, .04, 10, 28), mats.cyan);
+        hoverRing.rotation.x = Math.PI / 2;
+        hoverRing.position.set(0, .02, z);
+        board.add(hoverRing);
+        const glow = new THREE.Mesh(new THREE.ConeGeometry(.18, .7, 18), new THREE.MeshBasicMaterial({ color: 0x35d8ff, transparent: true, opacity: .35, blending: THREE.AdditiveBlending, depthWrite: false }));
+        glow.rotation.x = Math.PI;
+        glow.position.set(0, -.25, z);
+        board.add(glow);
+      }
+      visual.add(board);
+
+      const suit = new THREE.Group();
+      suit.position.y = .04;
+      const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.5, 1.02, 8, 22), mats.suit);
+      torso.position.y = 1.43;
+      torso.rotation.x = .16;
+      suit.add(torso);
+      const chestPlate = new THREE.Mesh(new THREE.BoxGeometry(.58, .34, .08), mats.suitTrim);
+      chestPlate.position.set(0, 1.55, -.45);
+      chestPlate.rotation.x = .12;
+      suit.add(chestPlate);
+      const chestCore = new THREE.Mesh(new THREE.ConeGeometry(.16, .22, 3), mats.cyan);
+      chestCore.rotation.z = Math.PI;
+      chestCore.position.set(0, 1.58, -.51);
+      suit.add(chestCore);
+      for (const x of [-.18, .18]) {
+        const chestLight = new THREE.Mesh(new THREE.BoxGeometry(.14, .08, .09), x < 0 ? mats.cyan : mats.green);
+        chestLight.position.set(x, 1.59, -.5);
+        suit.add(chestLight);
+      }
+      for (const x of [-.62, .62]) {
+        const shoulder = new THREE.Mesh(new THREE.SphereGeometry(.2, 16, 10), mats.suitTrim);
+        shoulder.scale.set(1.15, .7, 1);
+        shoulder.position.set(x, 1.82, -.03);
+        suit.add(shoulder);
+      }
+      const collar = new THREE.Mesh(new THREE.TorusGeometry(.39, .045, 12, 30), mats.suitTrim);
+      collar.position.y = 1.97;
+      collar.rotation.x = Math.PI / 2;
+      suit.add(collar);
+
+      const pack = new THREE.Mesh(new THREE.BoxGeometry(.72, .94, .36), mats.suitTrim);
+      pack.position.set(0, 1.45, .48);
+      suit.add(pack);
+      for (const x of [-.22, .22]) {
+        const tank = new THREE.Mesh(new THREE.CylinderGeometry(.1, .1, .78, 14), mats.metal);
+        tank.position.set(x, 1.45, .7);
+        suit.add(tank);
+      }
+
+      const helmet = new THREE.Mesh(new THREE.SphereGeometry(.46, 32, 22), mats.suit);
+      helmet.position.y = 2.28;
+      suit.add(helmet);
+      const visor = new THREE.Mesh(new THREE.SphereGeometry(.37, 28, 16), mats.glass);
+      visor.scale.set(1.22, .82, .28);
+      visor.position.set(0, 2.28, -.34);
+      suit.add(visor);
+      const visorStripe = new THREE.Mesh(new THREE.BoxGeometry(.08, .34, .04), mats.cyan);
+      visorStripe.rotation.z = -.45;
+      visorStripe.position.set(.2, 2.28, -.62);
+      suit.add(visorStripe);
+      const helmetRing = new THREE.Mesh(new THREE.TorusGeometry(.38, .035, 12, 28), mats.cyan);
+      helmetRing.position.set(0, 2.27, -.03);
+      helmetRing.rotation.x = Math.PI / 2;
+      suit.add(helmetRing);
+      for (const x of [-.42, .42]) {
+        const ear = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, .14, 14), mats.suitTrim);
+        ear.rotation.z = Math.PI / 2;
+        ear.position.set(x, 2.28, 0);
+        suit.add(ear);
+      }
+
+      const rayGun = new THREE.Group();
+      const gripGun = new THREE.Mesh(new THREE.BoxGeometry(.18, .48, .2), mats.dark);
+      gripGun.position.set(.02, -.28, .1);
+      gripGun.rotation.x = -.32;
+      rayGun.add(gripGun);
+      const bodyGun = new THREE.Mesh(new THREE.BoxGeometry(.42, .28, .92), mats.metal);
+      bodyGun.position.z = -.18;
+      rayGun.add(bodyGun);
+      const powerCore = new THREE.Mesh(new THREE.SphereGeometry(.2, 18, 12), mats.green);
+      powerCore.position.set(0, .02, -.18);
+      rayGun.add(powerCore);
+      const topRail = new THREE.Mesh(new THREE.BoxGeometry(.28, .07, .72), mats.cyan);
+      topRail.position.set(0, .2, -.18);
+      rayGun.add(topRail);
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(.12, .16, .55, 18), mats.metal);
+      barrel.rotation.x = Math.PI / 2;
+      barrel.position.z = -.82;
+      rayGun.add(barrel);
+      const muzzle = new THREE.Mesh(new THREE.TorusGeometry(.18, .04, 10, 24), mats.cyan);
+      muzzle.position.z = -1.12;
+      muzzle.rotation.x = Math.PI / 2;
+      rayGun.add(muzzle);
+      const sideCell = new THREE.Mesh(new THREE.BoxGeometry(.1, .12, .42), mats.green);
+      sideCell.position.set(.27, .02, -.18);
+      rayGun.add(sideCell);
+      rayGun.position.set(.66, 1.6, -.6);
+      rayGun.rotation.set(.03, -.08, -.05);
+      suit.add(rayGun);
+
+      const slideParts = [];
+      for (const side of [-1, 1]) {
+        const upperLeg = new THREE.Mesh(new THREE.CapsuleGeometry(.15, .5, 6, 14), mats.suit);
+        upperLeg.position.set(side * .24, .92, side * .08);
+        upperLeg.rotation.x = side * .18;
+        upperLeg.rotation.z = side * .08;
+        suit.add(upperLeg);
+        const boot = new THREE.Mesh(new THREE.BoxGeometry(.28, .16, .42), mats.suitTrim);
+        boot.position.set(side * .25, .48, side * .2);
+        boot.rotation.x = side * .12;
+        suit.add(boot);
+        const arm = new THREE.Mesh(new THREE.CapsuleGeometry(.12, .64, 6, 14), mats.suit);
+        arm.position.set(side * .56, 1.55, -.18);
+        arm.rotation.z = side * .45;
+        arm.rotation.x = side === 1 ? 1.14 : .42;
+        suit.add(arm);
+        const glove = new THREE.Mesh(new THREE.SphereGeometry(.14, 14, 10), mats.suitTrim);
+        glove.position.set(side * .68, side === 1 ? 1.34 : 1.32, side === 1 ? -.58 : -.33);
+        suit.add(glove);
+        slideParts.push({
+          side,
+          upperLeg,
+          boot,
+          arm,
+          glove,
+          legBase: upperLeg.position.clone(),
+          legRot: upperLeg.rotation.clone(),
+          bootBase: boot.position.clone(),
+          bootRot: boot.rotation.clone(),
+          armBase: arm.position.clone(),
+          armRot: arm.rotation.clone(),
+          gloveBase: glove.position.clone()
+        });
+      }
+      visual.add(suit);
+      const shield = new THREE.Mesh(new THREE.SphereGeometry(1.55, 36, 20), mats.shield);
+      shield.position.y = 1.08;
+      shield.scale.set(1.05, 1.28, 1.05);
+      shield.visible = false;
+      visual.add(shield);
+      const magnetField = new THREE.Mesh(
+        new THREE.TorusGeometry(1.45, .035, 12, 72),
+        new THREE.MeshBasicMaterial({ color: 0x20dfff, transparent: true, opacity: .42, blending: THREE.AdditiveBlending, depthWrite: false })
+      );
+      magnetField.rotation.x = Math.PI / 2;
+      magnetField.position.y = .38;
+      magnetField.visible = false;
+      visual.add(magnetField);
+      g.add(visual);
+      g.userData.shield = shield;
+      g.userData.magnetField = magnetField;
+      g.userData.visual = visual;
+      g.userData.visualBasePosition = visual.position.clone();
+      g.userData.visualBaseRotation = visual.rotation.clone();
+      g.userData.suit = suit;
+      g.userData.board = board;
+      g.userData.boardBasePosition = board.position.clone();
+      g.userData.boardBaseRotation = board.rotation.clone();
+      g.userData.slideParts = slideParts;
+      g.position.set(laneX[state.lane], 0, 3.6);
+      scene.add(g);
+      return g;
+    }
+    applyCosmetic();
+    const player = makeAstronaut();
+
+    function gemMesh() {
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.OctahedronGeometry(.54, 0), mats.crystal);
+      body.scale.y = 1.7;
+      g.add(body);
+      const aura = new THREE.Mesh(new THREE.SphereGeometry(.86, 12, 8), new THREE.MeshBasicMaterial({ color: 0x29ff46, transparent: true, opacity: .24, blending: THREE.AdditiveBlending, depthWrite: false }));
+      g.add(aura);
+      return g;
+    }
+
+    function cratePanelTexture(kind = "front") {
+      const cnv = document.createElement("canvas");
+      cnv.width = 512;
+      cnv.height = 512;
+      const ctx = cnv.getContext("2d");
+      const metal = ctx.createLinearGradient(0, 0, 512, 512);
+      metal.addColorStop(0, "#b8bab6");
+      metal.addColorStop(.24, "#787c78");
+      metal.addColorStop(.55, "#4f5350");
+      metal.addColorStop(1, "#8d908b");
+      ctx.fillStyle = metal;
+      ctx.fillRect(0, 0, 512, 512);
+      ctx.strokeStyle = "rgba(255,255,255,.24)";
+      ctx.lineWidth = 4;
+      roundRect(ctx, 22, 24, 468, 464, 24);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(0,0,0,.55)";
+      ctx.lineWidth = 9;
+      roundRect(ctx, 52, 58, 408, 396, 16);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(230,238,235,.38)";
+      ctx.lineWidth = 5;
+      roundRect(ctx, 74, 84, 364, 344, 8);
+      ctx.stroke();
+
+      if (kind === "front") {
+        ctx.strokeStyle = "#2e3230";
+        ctx.lineWidth = 34;
+        ctx.beginPath();
+        ctx.moveTo(120, 140);
+        ctx.lineTo(392, 372);
+        ctx.moveTo(392, 140);
+        ctx.lineTo(120, 372);
+        ctx.stroke();
+        ctx.strokeStyle = "#aeb2ad";
+        ctx.lineWidth = 11;
+        ctx.beginPath();
+        ctx.moveTo(125, 145);
+        ctx.lineTo(387, 367);
+        ctx.moveTo(387, 145);
+        ctx.lineTo(125, 367);
+        ctx.stroke();
+        ctx.fillStyle = "#252a28";
+        roundRect(ctx, 164, 74, 184, 42, 6);
+        ctx.fill();
+        roundRect(ctx, 164, 396, 184, 42, 6);
+        ctx.fill();
+        ctx.strokeStyle = "#080909";
+        ctx.lineWidth = 5;
+        for (const y of [88, 100, 412, 424]) {
+          ctx.beginPath();
+          ctx.moveTo(178, y);
+          ctx.lineTo(334, y);
+          ctx.stroke();
+        }
+        ctx.fillStyle = "rgba(132,236,255,.96)";
+        ctx.shadowColor = "#8befff";
+        ctx.shadowBlur = 18;
+        ctx.beginPath();
+        ctx.moveTo(256, 176);
+        ctx.lineTo(292, 226);
+        ctx.lineTo(220, 226);
+        ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      } else {
+        ctx.strokeStyle = "#2e3230";
+        ctx.lineWidth = 28;
+        ctx.beginPath();
+        ctx.moveTo(110, 120);
+        ctx.lineTo(402, 392);
+        ctx.moveTo(402, 120);
+        ctx.lineTo(110, 392);
+        ctx.stroke();
+        ctx.strokeStyle = "#9ea29e";
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.moveTo(116, 126);
+        ctx.lineTo(396, 386);
+        ctx.moveTo(396, 126);
+        ctx.lineTo(116, 386);
+        ctx.stroke();
+      }
+
+      ctx.shadowColor = "#79e9ff";
+      ctx.shadowBlur = 16;
+      ctx.fillStyle = "#9aefff";
+      for (const x of [54, 458]) roundRect(ctx, x - 9, 150, 18, 212, 8), ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#1d211f";
+      for (const x of [54, 458]) for (const y of [76, 436]) {
+        ctx.beginPath();
+        ctx.arc(x, y, 17, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#bfc4be";
+        ctx.beginPath();
+        ctx.arc(x, y, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#1d211f";
+      }
+      for (let i = 0; i < 80; i++) {
+        ctx.fillStyle = `rgba(255,255,255,${Math.random() * .12})`;
+        ctx.fillRect(Math.random() * 512, Math.random() * 512, 1 + Math.random() * 3, 1);
+      }
+      const texture = new THREE.CanvasTexture(cnv);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
+    }
+
+    function hazardMesh(type) {
+      const g = new THREE.Group();
+      if (type === "laser") {
+        for (let y = 1.05; y < 2.75; y += .5) {
+          const beam = new THREE.Mesh(new THREE.BoxGeometry(3.6, .12, .25), mats.orange);
+          beam.position.y = y;
+          g.add(beam);
+          const glow = new THREE.Mesh(new THREE.BoxGeometry(3.85, .22, .34), new THREE.MeshBasicMaterial({ color: 0xd8ff56, transparent: true, opacity: .22, blending: THREE.AdditiveBlending, depthWrite: false }));
+          glow.position.y = y;
+          g.add(glow);
+        }
+        const a = new THREE.Mesh(new THREE.BoxGeometry(.34, 2.8, .5), mats.dark);
+        const b = a.clone();
+        a.position.x = -1.9;
+        b.position.x = 1.9;
+        a.position.y = b.position.y = 1.4;
+        g.add(a, b);
+      } else if (type === "wall") {
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(3.45, 2.6, .55), mats.pink);
+        wall.position.y = 1.2;
+        g.add(wall);
+      } else if (type === "lowLaser") {
+        const beam = new THREE.Mesh(new THREE.BoxGeometry(3.7, .22, .45), mats.orange);
+        beam.position.y = 1.72;
+        g.add(beam);
+        const upperGlow = new THREE.Mesh(new THREE.BoxGeometry(3.9, .08, .48), new THREE.MeshBasicMaterial({ color: 0x9dff60, transparent: true, opacity: .28, blending: THREE.AdditiveBlending, depthWrite: false }));
+        upperGlow.position.y = 1.72;
+        g.add(upperGlow);
+        for (const x of [-1.95, 1.95]) {
+          const post = new THREE.Mesh(new THREE.BoxGeometry(.22, 1.92, .42), mats.pillar);
+          post.position.set(x, .96, 0);
+          g.add(post);
+          const band = new THREE.Mesh(new THREE.BoxGeometry(.32, .12, .52), mats.green);
+          band.position.set(x, 1.08, 0);
+          g.add(band);
+          const cap = new THREE.Mesh(new THREE.BoxGeometry(.34, .18, .5), mats.cyan);
+          cap.position.set(x, 1.73, 0);
+          g.add(cap);
+        }
+      } else if (type === "crate") {
+        const crateMetal = new THREE.MeshStandardMaterial({ color: 0x777a78, metalness: .92, roughness: .2, emissive: 0x0b0d0d, emissiveIntensity: .14 });
+        const crateDark = new THREE.MeshStandardMaterial({ color: 0x242827, metalness: .88, roughness: .28, emissive: 0x050606, emissiveIntensity: .1 });
+        const crateEdge = new THREE.MeshStandardMaterial({ color: 0xa6aaa7, metalness: .95, roughness: .16, emissive: 0x111313, emissiveIntensity: .12 });
+        const crateGlow = new THREE.MeshBasicMaterial({ color: 0x80e9ff, transparent: true, opacity: .92, blending: THREE.AdditiveBlending, depthWrite: false });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(2.45, 1.62, 2.08), crateMetal);
+        body.position.y = .8;
+        g.add(body);
+        const frontArt = new THREE.Mesh(
+          new THREE.PlaneGeometry(2.46, 1.63),
+          new THREE.MeshBasicMaterial({ map: cratePanelTexture("front"), side: THREE.DoubleSide })
+        );
+        frontArt.position.set(0, .8, -1.235);
+        g.add(frontArt);
+        const backArt = frontArt.clone();
+        backArt.material = new THREE.MeshBasicMaterial({ map: cratePanelTexture("front"), side: THREE.DoubleSide });
+        backArt.position.z = 1.235;
+        backArt.rotation.y = Math.PI;
+        g.add(backArt);
+        for (const x of [-1.255, 1.255]) {
+          const sideArt = new THREE.Mesh(
+            new THREE.PlaneGeometry(2.08, 1.63),
+            new THREE.MeshBasicMaterial({ map: cratePanelTexture("side"), side: THREE.DoubleSide })
+          );
+          sideArt.position.set(x, .8, 0);
+          sideArt.rotation.y = x < 0 ? -Math.PI / 2 : Math.PI / 2;
+          g.add(sideArt);
+        }
+        const topArt = new THREE.Mesh(
+          new THREE.PlaneGeometry(2.46, 2.08),
+          new THREE.MeshBasicMaterial({ map: cratePanelTexture("side"), side: THREE.DoubleSide })
+        );
+        topArt.position.set(0, 1.64, 0);
+        topArt.rotation.x = -Math.PI / 2;
+        g.add(topArt);
+        const frontPanel = new THREE.Mesh(new THREE.BoxGeometry(1.62, 1.06, .08), crateDark);
+        frontPanel.position.set(0, .82, -1.255);
+        frontPanel.visible = false;
+        g.add(frontPanel);
+        const topPanel = new THREE.Mesh(new THREE.BoxGeometry(1.28, .08, 1.1), crateDark);
+        topPanel.position.set(0, 1.66, 0);
+        topPanel.visible = false;
+        g.add(topPanel);
+        for (const x of [-1.08, 1.08]) {
+          const corner = new THREE.Mesh(new THREE.BoxGeometry(.26, 1.82, .22), crateEdge);
+          corner.position.set(x, .82, -1.13);
+          g.add(corner);
+          const sideColumn = new THREE.Mesh(new THREE.BoxGeometry(.2, 1.68, 1.84), crateEdge);
+          sideColumn.position.set(x, .82, 0);
+          g.add(sideColumn);
+          const light = new THREE.Mesh(new THREE.BoxGeometry(.055, .88, .08), crateGlow);
+          light.position.set(x * 1.03, .78, -1.26);
+          g.add(light);
+        }
+        for (const y of [.2, 1.42]) {
+          const rail = new THREE.Mesh(new THREE.BoxGeometry(2.34, .16, .14), crateEdge);
+          rail.position.set(0, y, -1.19);
+          g.add(rail);
+        }
+        for (const z of [-.72, .72]) {
+          const topRail = new THREE.Mesh(new THREE.BoxGeometry(2.08, .12, .16), crateEdge);
+          topRail.position.set(0, 1.79, z);
+          g.add(topRail);
+        }
+        for (const [x, rot] of [[-.43, -.62], [.43, .62]]) {
+          const braceA = new THREE.Mesh(new THREE.BoxGeometry(.14, 1.06, .1), crateEdge);
+          braceA.position.set(x, .82, -1.25);
+          braceA.rotation.z = rot;
+          g.add(braceA);
+          const braceB = braceA.clone();
+          braceB.rotation.z = -rot;
+          g.add(braceB);
+        }
+        const tri = new THREE.Mesh(new THREE.ConeGeometry(.18, .22, 3), crateGlow);
+        tri.rotation.z = Math.PI;
+        tri.position.set(0, 1.08, -1.28);
+        g.add(tri);
+        for (const y of [.45, 1.25]) {
+          const vent = new THREE.Mesh(new THREE.BoxGeometry(.62, .2, .08), crateDark);
+          vent.position.set(0, y, -1.29);
+          g.add(vent);
+          for (let i = 0; i < 4; i++) {
+            const slit = new THREE.Mesh(new THREE.BoxGeometry(.52, .018, .095), crateEdge);
+            slit.position.set(0, y - .06 + i * .04, -1.34);
+            g.add(slit);
+          }
+        }
+        for (const x of [-1.12, 1.12]) for (const y of [.28, 1.34]) {
+          const screw = new THREE.Mesh(new THREE.CylinderGeometry(.075, .075, .045, 14), crateDark);
+          screw.rotation.x = Math.PI / 2;
+          screw.position.set(x, y, -1.28);
+          g.add(screw);
+          const screwCore = new THREE.Mesh(new THREE.CylinderGeometry(.035, .035, .05, 10), crateMetal);
+          screwCore.rotation.x = Math.PI / 2;
+          screwCore.position.set(x, y, -1.315);
+          g.add(screwCore);
+        }
+      } else if (type === "jumpPad") {
+        const padMetal = new THREE.MeshStandardMaterial({ color: 0x59616a, metalness: .92, roughness: .2, emissive: 0x071018, emissiveIntensity: .18 });
+        const padDark = new THREE.MeshStandardMaterial({ color: 0x12233a, metalness: .55, roughness: .25, emissive: 0x06315b, emissiveIntensity: .55 });
+        const padGlow = new THREE.MeshBasicMaterial({ color: 0x49dcff, transparent: true, opacity: .92, blending: THREE.AdditiveBlending, depthWrite: false });
+        const padAura = new THREE.MeshBasicMaterial({ color: 0x39cfff, transparent: true, opacity: .28, blending: THREE.AdditiveBlending, depthWrite: false });
+        const base = new THREE.Mesh(new THREE.BoxGeometry(2.82, .24, 2.16), padMetal);
+        base.position.y = .13;
+        g.add(base);
+        const inset = new THREE.Mesh(new THREE.BoxGeometry(2.18, .055, 1.56), padDark);
+        inset.position.y = .29;
+        g.add(inset);
+        const glass = new THREE.Mesh(new THREE.BoxGeometry(2.02, .035, 1.4), padAura);
+        glass.position.y = .325;
+        g.add(glass);
+        for (const x of [-1.28, 1.28]) {
+          const side = new THREE.Mesh(new THREE.BoxGeometry(.24, .34, 1.96), padMetal);
+          side.position.set(x, .2, 0);
+          g.add(side);
+          const sideLight = new THREE.Mesh(new THREE.BoxGeometry(.04, .055, 1.36), padGlow);
+          sideLight.position.set(x, .42, 0);
+          g.add(sideLight);
+        }
+        for (const z of [-.96, .96]) {
+          const cap = new THREE.Mesh(new THREE.BoxGeometry(2.56, .3, .24), padMetal);
+          cap.position.set(0, .2, z);
+          g.add(cap);
+          const light = new THREE.Mesh(new THREE.BoxGeometry(1.56, .055, .045), padGlow);
+          light.position.set(0, .43, z);
+          g.add(light);
+        }
+        for (const z of [-.52, -.16, .2, .56]) {
+          for (const side of [-1, 1]) {
+            const chevron = new THREE.Mesh(new THREE.BoxGeometry(.82, .055, .2), padGlow);
+            chevron.position.set(side * .31, .39, z);
+            chevron.rotation.y = side * .58;
+            g.add(chevron);
+          }
+        }
+        for (let x = -.8; x <= .8; x += .4) {
+          const gridLine = new THREE.Mesh(new THREE.BoxGeometry(.018, .026, 1.26), new THREE.MeshBasicMaterial({ color: 0x49dcff, transparent: true, opacity: .12, blending: THREE.AdditiveBlending, depthWrite: false }));
+          gridLine.position.set(x, .36, 0);
+          g.add(gridLine);
+        }
+      } else if (type === "gap") {
+        const warning = new THREE.Mesh(new THREE.BoxGeometry(3.55, .08, .24), mats.orange);
+        warning.position.set(0, .08, -1.15);
+        g.add(warning);
+        const voidPlate = new THREE.Mesh(new THREE.BoxGeometry(3.55, .05, 2.25), new THREE.MeshBasicMaterial({ color: 0x01040d, transparent: true, opacity: .82 }));
+        voidPlate.position.y = .02;
+        g.add(voidPlate);
+      } else if (type === "ramp") {
+        const ramp = new THREE.Mesh(new THREE.BoxGeometry(3.25, .22, 2.3), mats.pillar);
+        ramp.position.y = .25;
+        ramp.rotation.x = -.22;
+        g.add(ramp);
+        const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.4, .07, 1.8), mats.green);
+        stripe.position.set(0, .46, -.1);
+        stripe.rotation.x = -.22;
+        g.add(stripe);
+      } else {
+        const a = new THREE.Mesh(new THREE.DodecahedronGeometry(1.05, 0), mats.meteor);
+        a.position.y = 1.05;
+        g.add(a);
+        for (let i = 0; i < 5; i++) {
+          const crack = new THREE.Mesh(new THREE.BoxGeometry(.08, .06, .9), mats.green);
+          crack.position.set((Math.random() - .5) * .9, 1.05 + (Math.random() - .5) * .7, (Math.random() - .5) * .9);
+          crack.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+          g.add(crack);
+        }
+        const fire = new THREE.Mesh(new THREE.ConeGeometry(.55, 2.1, 18), mats.orange);
+        fire.rotation.x = Math.PI / 2;
+        fire.position.z = .95;
+        g.add(fire);
+        const warn = new THREE.Mesh(new THREE.TorusGeometry(1.25, .035, 8, 42), new THREE.MeshBasicMaterial({ color: 0xd8ff56, transparent: true, opacity: .38, blending: THREE.AdditiveBlending, depthWrite: false }));
+        warn.rotation.x = Math.PI / 2;
+        warn.position.y = .04;
+        g.add(warn);
+      }
+      g.userData.kind = "hazard";
+      g.userData.type = type;
+      return g;
+    }
+
+    function enemyMesh(type) {
+      const g = new THREE.Group();
+      if (type === "drone") {
+        const body = new THREE.Mesh(new THREE.SphereGeometry(.78, 26, 18), mats.metal);
+        body.scale.set(1.08, .95, 1);
+        g.add(body);
+        const shell = new THREE.Mesh(new THREE.TorusGeometry(.86, .06, 12, 36), mats.pillar);
+        shell.rotation.x = Math.PI / 2;
+        shell.position.z = -.03;
+        g.add(shell);
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(.26, 18, 12), mats.cyan);
+        eye.position.set(0, .03, -.72);
+        g.add(eye);
+        const glow = new THREE.Mesh(new THREE.SphereGeometry(1.1, 16, 10), new THREE.MeshBasicMaterial({ color: 0x77ff9d, transparent: true, opacity: .15, blending: THREE.AdditiveBlending, depthWrite: false }));
+        g.add(glow);
+        for (const x of [-1.12, 1.12]) {
+          const wing = new THREE.Mesh(new THREE.BoxGeometry(.32, .72, .18), mats.pillar);
+          wing.position.x = x;
+          wing.rotation.z = x < 0 ? .35 : -.35;
+          g.add(wing);
+          const ring = new THREE.Mesh(new THREE.TorusGeometry(.28, .035, 8, 24), mats.cyan);
+          ring.position.x = x;
+          ring.rotation.x = Math.PI / 2;
+          g.add(ring);
+        }
+      } else if (type === "turret") {
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(.95, 1.15, .42, 18), mats.metal);
+        base.position.y = .25;
+        g.add(base);
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(.85, .08, 10, 32), mats.cyan);
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = .54;
+        g.add(ring);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(.95, .62, .9), mats.pillar);
+        head.position.y = .92;
+        g.add(head);
+        const barrel = new THREE.Mesh(new THREE.CylinderGeometry(.16, .22, 1.05, 14), mats.green);
+        barrel.rotation.x = Math.PI / 2;
+        barrel.position.set(0, .92, -.72);
+        g.add(barrel);
+      } else {
+        const body = new THREE.Mesh(new THREE.ConeGeometry(.72, 2.65, 4), mats.metal);
+        body.rotation.x = Math.PI / 2;
+        g.add(body);
+        const canopy = new THREE.Mesh(new THREE.SphereGeometry(.28, 14, 10), mats.green);
+        canopy.scale.set(1, .55, 1.4);
+        canopy.position.z = -.46;
+        g.add(canopy);
+        const wing = new THREE.Mesh(new THREE.BoxGeometry(3.2, .12, .55), mats.pillar);
+        wing.position.z = .05;
+        g.add(wing);
+        for (const x of [-1.1, 1.1]) {
+          const fin = new THREE.Mesh(new THREE.ConeGeometry(.16, .9, 3), mats.cyan);
+          fin.rotation.z = x < 0 ? .8 : -.8;
+          fin.position.set(x, 0, .18);
+          g.add(fin);
+        }
+        const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.4, .055, .76), mats.green);
+        stripe.position.z = .14;
+        g.add(stripe);
+      }
+      g.userData.kind = "enemy";
+      g.userData.type = type;
+      g.userData.hp = type === "ship" ? 2 : 1;
+      g.userData.fire = 1 + Math.random();
+      g.userData.passedPlayer = false;
+      g.userData.closeSpeed = (type === "drone" ? 6.4 : type === "ship" ? 5.4 : 0) + Math.random() * 2.6;
+      g.userData.steer = (type === "drone" ? 1.55 : type === "ship" ? 1.0 : 0) + Math.random() * 1.25;
+      g.userData.phase = Math.random() * Math.PI * 2;
+      g.userData.weave = (Math.random() < .5 ? -1 : 1) * (.28 + Math.random() * .72);
+      g.userData.bob = .1 + Math.random() * .28;
+      return g;
+    }
+
+    function powerMesh(type) {
+      const g = new THREE.Group();
+      const style = powerupStyles[type];
+      if (type === "starcore") {
+        const coreMat = new THREE.MeshStandardMaterial({
+          color: 0x8f63ff,
+          transparent: true,
+          opacity: .82,
+          metalness: .08,
+          roughness: .04,
+          emissive: 0x8f38ff,
+          emissiveIntensity: 2.7
+        });
+        const lowerMat = new THREE.MeshStandardMaterial({
+          color: 0x18dfff,
+          transparent: true,
+          opacity: .78,
+          metalness: .08,
+          roughness: .04,
+          emissive: 0x00bfff,
+          emissiveIntensity: 2.8
+        });
+        const innerMat = new THREE.MeshBasicMaterial({ color: 0xf9f1ff, transparent: true, opacity: .62, blending: THREE.AdditiveBlending, depthWrite: false });
+        const metalMat = new THREE.MeshStandardMaterial({ color: 0xb6aaa2, metalness: .92, roughness: .18, emissive: 0x14101a, emissiveIntensity: .18 });
+        const top = new THREE.Mesh(new THREE.ConeGeometry(.48, .92, 4), coreMat);
+        top.position.y = .28;
+        top.rotation.y = Math.PI / 4;
+        g.add(top);
+        const bottom = new THREE.Mesh(new THREE.ConeGeometry(.48, .92, 4), lowerMat);
+        bottom.position.y = -.28;
+        bottom.rotation.set(Math.PI, Math.PI / 4, 0);
+        g.add(bottom);
+        const inner = new THREE.Mesh(new THREE.OctahedronGeometry(.36, 0), innerMat);
+        inner.scale.y = 1.9;
+        g.add(inner);
+        for (const [x, y] of [[.5, .02], [-.5, .02], [.28, .44], [-.28, .44], [.28, -.44], [-.28, -.44]]) {
+          const fin = new THREE.Mesh(new THREE.ConeGeometry(.08, .42, 3), metalMat);
+          fin.position.set(x, y, 0);
+          fin.rotation.z = x > 0 ? -Math.PI / 2 : Math.PI / 2;
+          fin.rotation.y = Math.PI / 2;
+          g.add(fin);
+        }
+        const verticalGlow = new THREE.Mesh(new THREE.BoxGeometry(.045, 1.55, .045), innerMat);
+        g.add(verticalGlow);
+        const aura = new THREE.Mesh(
+          new THREE.SphereGeometry(1.08, 18, 12),
+          new THREE.MeshBasicMaterial({ color: 0x7b8cff, transparent: true, opacity: .3, blending: THREE.AdditiveBlending, depthWrite: false })
+        );
+        aura.scale.y = 1.35;
+        g.add(aura);
+        g.userData.kind = "powerup";
+        g.userData.type = type;
+        return g;
+      }
+      const colorMat = new THREE.MeshBasicMaterial({ color: style.color, transparent: true, opacity: .96, blending: THREE.AdditiveBlending, depthWrite: false });
+      const metalMat = new THREE.MeshStandardMaterial({ color: 0x141d25, metalness: .86, roughness: .2, emissive: 0x061626, emissiveIntensity: .32 });
+      const glowMat = new THREE.MeshBasicMaterial({ color: style.color, transparent: true, opacity: .66, blending: THREE.AdditiveBlending, depthWrite: false });
+      const whiteGlow = new THREE.MeshBasicMaterial({ color: 0xf5ffff, transparent: true, opacity: .9, blending: THREE.AdditiveBlending, depthWrite: false });
+      const base = new THREE.Group();
+      const basePlate = new THREE.Mesh(new THREE.CylinderGeometry(.88, 1.04, .18, 36), metalMat);
+      basePlate.position.y = -.64;
+      base.add(basePlate);
+      const baseRing = new THREE.Mesh(new THREE.TorusGeometry(.78, .045, 10, 44), colorMat);
+      baseRing.rotation.x = Math.PI / 2;
+      baseRing.position.y = -.53;
+      base.add(baseRing);
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(.18, .32, 1.05, 18), glowMat);
+      beam.position.y = -.05;
+      base.add(beam);
+      g.add(base);
+      if (type === "shield") {
+        const shape = new THREE.Shape();
+        shape.moveTo(0, .72);
+        shape.bezierCurveTo(.5, .52, .62, .38, .62, .18);
+        shape.lineTo(.45, -.48);
+        shape.lineTo(0, -.78);
+        shape.lineTo(-.45, -.48);
+        shape.lineTo(-.62, .18);
+        shape.bezierCurveTo(-.62, .38, -.5, .52, 0, .72);
+        shape.closePath();
+        const shieldIcon = new THREE.Mesh(new THREE.ShapeGeometry(shape), colorMat);
+        shieldIcon.position.y = .18;
+        shieldIcon.scale.set(1.18, 1.18, 1.18);
+        g.add(shieldIcon);
+        const inner = new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshBasicMaterial({ color: 0x43e7ff, transparent: true, opacity: .25, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+        inner.scale.set(.72, .72, .72);
+        inner.position.y = .18;
+        g.add(inner);
+      } else if (type === "magnet") {
+        const darkBlueMat = new THREE.MeshBasicMaterial({ color: 0x0a54c5, transparent: true, opacity: .92, blending: THREE.AdditiveBlending, depthWrite: false });
+        const cyanEdge = new THREE.MeshBasicMaterial({ color: 0x4befff, transparent: true, opacity: .88, blending: THREE.AdditiveBlending, depthWrite: false });
+        const arc = new THREE.Mesh(new THREE.TorusGeometry(.66, .18, 18, 54, Math.PI * 1.18), darkBlueMat);
+        arc.position.y = .13;
+        arc.rotation.z = Math.PI * .91;
+        g.add(arc);
+        const innerArc = new THREE.Mesh(new THREE.TorusGeometry(.48, .045, 12, 44, Math.PI * 1.18), cyanEdge);
+        innerArc.position.y = .13;
+        innerArc.rotation.z = Math.PI * .91;
+        g.add(innerArc);
+        for (const x of [-.67, .67]) {
+          const tip = new THREE.Mesh(new THREE.BoxGeometry(.3, .34, .24), darkBlueMat);
+          tip.position.set(x, -.33, 0);
+          tip.rotation.z = x < 0 ? -.1 : .1;
+          g.add(tip);
+          const cap = new THREE.Mesh(new THREE.BoxGeometry(.2, .12, .26), cyanEdge);
+          cap.position.set(x, -.12, 0);
+          g.add(cap);
+        }
+      } else if (type === "double") {
+        for (const [x, y, s] of [[-.43, .2, .86], [0, .46, 1.18], [.45, .14, .78], [-.76, -.12, .56]]) {
+          const gem = new THREE.Mesh(new THREE.OctahedronGeometry(.34 * s, 0), colorMat);
+          gem.position.set(x, y, 0);
+          gem.scale.y = 1.7;
+          g.add(gem);
+        }
+        const goldMat = new THREE.MeshBasicMaterial({ color: 0xfff05a, transparent: true, opacity: .95, blending: THREE.AdditiveBlending, depthWrite: false });
+        const goldAura = new THREE.Mesh(
+          new THREE.SphereGeometry(.98, 18, 12),
+          new THREE.MeshBasicMaterial({ color: 0xfff05a, transparent: true, opacity: .22, blending: THREE.AdditiveBlending, depthWrite: false })
+        );
+        goldAura.position.y = -.24;
+        g.add(goldAura);
+        const bonusRing = new THREE.Mesh(new THREE.TorusGeometry(.58, .05, 10, 40), goldMat);
+        bonusRing.rotation.x = Math.PI / 2;
+        bonusRing.position.y = -.46;
+        g.add(bonusRing);
+        for (const rot of [.72, -.72]) {
+          const xStroke = new THREE.Mesh(new THREE.BoxGeometry(.16, .78, .1), goldMat);
+          xStroke.position.set(-.22, -.34, -.03);
+          xStroke.rotation.z = rot;
+          g.add(xStroke);
+        }
+        const twoTop = new THREE.Mesh(new THREE.TorusGeometry(.25, .06, 8, 24, Math.PI * 1.25), goldMat);
+        twoTop.position.set(.4, -.17, -.03);
+        twoTop.rotation.z = -.2;
+        g.add(twoTop);
+        const twoDiag = new THREE.Mesh(new THREE.BoxGeometry(.13, .54, .1), goldMat);
+        twoDiag.position.set(.34, -.42, -.03);
+        twoDiag.rotation.z = -.78;
+        g.add(twoDiag);
+        const twoBase = new THREE.Mesh(new THREE.BoxGeometry(.55, .12, .1), goldMat);
+        twoBase.position.set(.42, -.66, -.03);
+        g.add(twoBase);
+      } else if (type === "rapid") {
+        const rapidRoot = new THREE.Group();
+        rapidRoot.rotation.z = -.26;
+        rapidRoot.position.y = .18;
+        g.add(rapidRoot);
+        const shell = new THREE.Mesh(new THREE.CylinderGeometry(.44, .44, 1.35, 32), new THREE.MeshStandardMaterial({ color: 0x14242a, metalness: .9, roughness: .14, emissive: 0x0a2510, emissiveIntensity: .9 }));
+        rapidRoot.add(shell);
+        const glass = new THREE.Mesh(new THREE.CylinderGeometry(.31, .31, 1.12, 32), new THREE.MeshBasicMaterial({ color: 0x70ff22, transparent: true, opacity: .78, blending: THREE.AdditiveBlending, depthWrite: false }));
+        rapidRoot.add(glass);
+        const core = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, 1.18, 18), new THREE.MeshBasicMaterial({ color: 0xcaff8e, transparent: true, opacity: .95, blending: THREE.AdditiveBlending, depthWrite: false }));
+        rapidRoot.add(core);
+        for (const y of [-.76, .76]) {
+          const cap = new THREE.Mesh(new THREE.CylinderGeometry(.5, .5, .2, 32), metalMat);
+          cap.position.y = y;
+          rapidRoot.add(cap);
+          const rim = new THREE.Mesh(new THREE.TorusGeometry(.42, .035, 8, 32), colorMat);
+          rim.rotation.x = Math.PI / 2;
+          rim.position.y = y * .91;
+          rapidRoot.add(rim);
+        }
+        for (const x of [-.2, .2]) {
+          const strip = new THREE.Mesh(new THREE.BoxGeometry(.035, 1.12, .05), whiteGlow);
+          strip.position.x = x;
+          rapidRoot.add(strip);
+        }
+      } else if (type === "slow") {
+        const clock = new THREE.Mesh(new THREE.TorusGeometry(.72, .075, 12, 50), colorMat);
+        clock.position.y = .18;
+        g.add(clock);
+        const outer = new THREE.Mesh(new THREE.TorusGeometry(.88, .045, 10, 50), glowMat);
+        outer.position.y = .18;
+        g.add(outer);
+        const handA = new THREE.Mesh(new THREE.BoxGeometry(.07, .68, .1), whiteGlow);
+        handA.position.y = .48;
+        g.add(handA);
+        const handB = new THREE.Mesh(new THREE.BoxGeometry(.52, .07, .1), whiteGlow);
+        handB.position.set(.24, -.02, 0);
+        handB.rotation.z = -.74;
+        g.add(handB);
+      } else {
+        const dashMat = new THREE.MeshBasicMaterial({ color: 0x24e7ff, transparent: true, opacity: .9, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+        const dashCoreMat = new THREE.MeshBasicMaterial({ color: 0xd9ffff, transparent: true, opacity: .72, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+        const makeChevron = (mat, scale = 1) => {
+          const shape = new THREE.Shape();
+          shape.moveTo(-.48, .45);
+          shape.lineTo(.08, .45);
+          shape.lineTo(.62, 0);
+          shape.lineTo(.08, -.45);
+          shape.lineTo(-.48, -.45);
+          shape.lineTo(-.05, 0);
+          shape.closePath();
+          const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shape), mat);
+          mesh.scale.set(scale, scale, scale);
+          return mesh;
+        };
+        for (const [x, s] of [[-.28, 1.03], [.42, .96]]) {
+          const chevron = makeChevron(dashMat, s);
+          chevron.position.set(x, .24, .02);
+          g.add(chevron);
+          const core = makeChevron(dashCoreMat, s * .74);
+          core.position.set(x + .02, .24, .04);
+          g.add(core);
+        }
+        const streak = new THREE.Mesh(new THREE.BoxGeometry(1.45, .07, .05), glowMat);
+        streak.position.set(-.55, .24, -.04);
+        g.add(streak);
+      }
+      const glow = new THREE.Mesh(new THREE.SphereGeometry(1.42, 18, 12), glowMat);
+      g.add(glow);
+      g.scale.setScalar(1.3);
+      g.userData.kind = "powerup";
+      g.userData.type = type;
+      return g;
+    }
+
+    function addObject(obj, list, x, y, z) {
+      obj.position.set(x, y, z);
+      obj.userData.active = true;
+      obj.userData.baseY = y;
+      scene.add(obj);
+      list.push(obj);
+      const limit =
+        list === pools.hazards ? 24 :
+        list === pools.crystals ? 0 :
+        list === pools.enemies ? 14 :
+        list === pools.enemyShots ? 24 :
+        list === pools.bullets ? 36 :
+        list === pools.powerups ? 8 : 0;
+      if (limit && list.length > limit) removeFrom(list, list[0]);
+      return obj;
+    }
+
+    function laneHasHazardNear(lane, z, radius = 9) {
+      const x = laneX[lane];
+      return pools.hazards.some((hazard) => Math.abs(hazard.position.x - x) < .4 && Math.abs(hazard.position.z - z) < radius);
+    }
+
+    function pickCrystalLane(lanes, z, avoidedLane = -1) {
+      return lanes.find((lane) => lane !== avoidedLane && !laneHasHazardNear(lane, z - 5, 14));
+    }
+
+    function spawnRow(z) {
+      const rowType = Math.random();
+      const lanes = [0, 1, 2].sort(() => Math.random() - .5);
+      const verticalReady = state.distance > 650;
+      if (!state.starCoreSpawned && state.distance > 1800 && Math.random() < .012) {
+        state.starCoreSpawned = true;
+        addObject(powerMesh("starcore"), pools.powerups, laneX[lanes[0]], 1.35, z - 4);
+      }
+      if (verticalReady && rowType < .12) {
+        const type = Math.random() < .34 ? "jumpPad" : Math.random() < .67 ? "gap" : "ramp";
+        addObject(hazardMesh(type), pools.hazards, laneX[lanes[0]], 0, z);
+        if (type === "ramp" || type === "jumpPad") {
+          for (let i = 0; i < 5; i++) addObject(gemMesh(), pools.crystals, laneX[lanes[0]], 1.35 + i * .22, z - 3 - i * 2.1);
+        }
+      } else if (rowType < .25) {
+        const blocked = lanes.slice(0, Math.random() < .3 ? 2 : 1);
+        for (const lane of blocked) {
+          const types = ["lowLaser", "crate", "lowLaser", "crate", "laser", "meteor"];
+          addObject(hazardMesh(types[Math.floor(Math.random() * types.length)]), pools.hazards, laneX[lane], 0, z);
+        }
+      } else if (rowType < .58) {
+        const type = Math.random() < .58 ? "drone" : Math.random() < .82 ? "ship" : "turret";
+        const lane = lanes[0];
+        addObject(enemyMesh(type), pools.enemies, laneX[lane], type === "turret" ? .15 : 2.35 + Math.random() * .8, z);
+        const crystalLane = pickCrystalLane(lanes, z, lane);
+        if (crystalLane !== undefined) {
+          for (let i = 0; i < 3; i++) addObject(gemMesh(), pools.crystals, laneX[crystalLane], 1.18 + Math.sin(i * .8) * .12, z - 4 - i * 2.4);
+        }
+      } else if (rowType < .9) {
+        const lane = pickCrystalLane(lanes, z);
+        if (lane !== undefined) {
+          const trail = 5 + Math.floor(Math.random() * 3);
+          for (let i = 0; i < trail; i++) addObject(gemMesh(), pools.crystals, laneX[lane], 1.2 + Math.sin(i * .8) * .18, z - i * 2.45);
+        }
+      } else {
+        addObject(powerMesh(["shield", "rapid", "slow", "dash", "magnet", "double"][Math.floor(Math.random() * 6)]), pools.powerups, laneX[lanes[0]], 1.15, z);
+      }
+    }
+
+    function shoot() {
+      if (!state.running || state.paused || state.gameOver || state.energy < 9 || state.shootCooldown > 0) return;
+      state.energy -= state.rapid > 0 ? 4 : 9;
+      state.shootCooldown = (state.rapid > 0 ? .075 : .18) / (1 + upgradeLevel("weaponCooldown") * .1);
+      sfx.shoot();
+      raycaster.setFromCamera(pointer, camera);
+      const origin = player.position.clone().add(new THREE.Vector3(.48, 1.62, -.7));
+      const target = raycaster.ray.origin.clone().add(raycaster.ray.direction.clone().multiplyScalar(95));
+      const dir = target.sub(origin).normalize();
+      const bullet = new THREE.Group();
+      const core = new THREE.Mesh(new THREE.ConeGeometry(.16, .52, 18), new THREE.MeshBasicMaterial({ color: 0xe9fff8, transparent: true, opacity: .95, blending: THREE.AdditiveBlending, depthWrite: false }));
+      core.rotation.x = -Math.PI / 2;
+      bullet.add(core);
+      const trail = new THREE.Mesh(
+        new THREE.ConeGeometry(.18, 1.08, 16),
+        new THREE.MeshBasicMaterial({ color: 0x34ffc8, transparent: true, opacity: .5, blending: THREE.AdditiveBlending, depthWrite: false })
+      );
+      trail.rotation.x = Math.PI / 2;
+      trail.position.z = .48;
+      bullet.add(trail);
+      const streak = new THREE.Mesh(new THREE.BoxGeometry(.055, .055, 1.2), new THREE.MeshBasicMaterial({ color: 0x7dff6a, transparent: true, opacity: .62, blending: THREE.AdditiveBlending, depthWrite: false }));
+      streak.position.z = .32;
+      bullet.add(streak);
+      bullet.position.copy(origin);
+      bullet.userData.vel = dir.multiplyScalar(95);
+      bullet.userData.life = 1.4;
+      bullet.userData.kind = "bullet";
+      bullet.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), bullet.userData.vel.clone().normalize());
+      scene.add(bullet);
+      pools.bullets.push(bullet);
+      spark(origin, 0x43e7ff, 10);
+    }
+
+    function fireTurret(turret) {
+      const origin = turret.position.clone().add(new THREE.Vector3(0, 1.0, -.72));
+      const target = player.position.clone().add(new THREE.Vector3(0, .9, 0));
+      const dir = target.sub(origin).normalize();
+      const shot = new THREE.Group();
+      const core = new THREE.Mesh(
+        new THREE.SphereGeometry(.18, 14, 10),
+        new THREE.MeshBasicMaterial({ color: 0xb26bff, transparent: true, opacity: .92, blending: THREE.AdditiveBlending, depthWrite: false })
+      );
+      shot.add(core);
+      const trail = new THREE.Mesh(
+        new THREE.ConeGeometry(.18, .8, 14),
+        new THREE.MeshBasicMaterial({ color: 0x7c3cff, transparent: true, opacity: .45, blending: THREE.AdditiveBlending, depthWrite: false })
+      );
+      trail.rotation.x = Math.PI / 2;
+      trail.position.z = .36;
+      shot.add(trail);
+      shot.position.copy(origin);
+      shot.userData.vel = dir.multiplyScalar(24);
+      shot.userData.life = 3.4;
+      shot.userData.kind = "enemyShot";
+      shot.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), shot.userData.vel.clone().normalize());
+      scene.add(shot);
+      pools.enemyShots.push(shot);
+      spark(origin, 0xb26bff, 8);
+    }
+
+    function spark(pos, color = 0x35f6ff, count = 12) {
+      const mat = new THREE.PointsMaterial({ color, size: .12, transparent: true, opacity: .9, depthWrite: false });
+      const geo = new THREE.BufferGeometry();
+      const arr = [];
+      for (let i = 0; i < count; i++) arr.push((Math.random() - .5) * .6, (Math.random() - .5) * .6, (Math.random() - .5) * .6);
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(arr, 3));
+      const p = new THREE.Points(geo, mat);
+      p.position.copy(pos);
+      p.userData.life = .34;
+      p.userData.vel = new THREE.Vector3((Math.random() - .5) * 2, Math.random() * 2, (Math.random() - .5) * 2);
+      scene.add(p);
+      pools.particles.push(p);
+    }
+
+    function burst(pos, color = 0x9dff60, count = 24) {
+      spark(pos, color, count);
+      const flash = new THREE.Mesh(
+        new THREE.SphereGeometry(.7, 12, 8),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: .32, blending: THREE.AdditiveBlending, depthWrite: false })
+      );
+      flash.position.copy(pos);
+      flash.userData.life = .22;
+      flash.userData.vel = new THREE.Vector3();
+      scene.add(flash);
+      pools.particles.push(flash);
+    }
+
+    function debrisBurst(pos, color = 0x43e7ff, count = 5) {
+      for (let i = 0; i < count; i++) {
+        const chunk = new THREE.Mesh(new THREE.BoxGeometry(.16, .1, .22), new THREE.MeshStandardMaterial({ color: 0x7f8790, metalness: .7, roughness: .32, emissive: color, emissiveIntensity: .35 }));
+        chunk.position.copy(pos);
+        chunk.userData.life = .42 + Math.random() * .18;
+        chunk.userData.vel = new THREE.Vector3((Math.random() - .5) * 5, Math.random() * 3.2, (Math.random() - .5) * 5);
+        scene.add(chunk);
+        pools.particles.push(chunk);
+      }
+    }
+
+    function scorePopup(pos, text, color = "#d8ff56") {
+      const sprite = makeLabelSprite(text, color);
+      sprite.position.copy(pos).add(new THREE.Vector3(0, .85, 0));
+      sprite.userData.life = .55;
+      sprite.userData.vel = new THREE.Vector3(0, 1.3, 0);
+      scene.add(sprite);
+      pools.particles.push(sprite);
+    }
+
+    function hitPlayer(amount = 1) {
+      if (state.shield > 0 || state.damageFlash > 0) return;
+      if (state.emergencyShield) {
+        state.emergencyShield = false;
+        state.shield = 1.2;
+        state.damageFlash = .45;
+        sfx.power();
+        spark(player.position.clone().add(new THREE.Vector3(0, 1, 0)), 0x7dff6a, 22);
+        return;
+      }
+      state.health -= amount;
+      if (state.comboSaver) state.comboSaver = false;
+      else state.combo = 1;
+      state.damageFlash = .8;
+      sfx.hit();
+      spark(player.position.clone().add(new THREE.Vector3(0, 1, 0)), 0xd8ff56, 24);
+      if (state.health <= 0) endGame();
+    }
+
+    function collectPower(type) {
+      if (type === "starcore") {
+        profile.starCores = (profile.starCores || 0) + 1;
+        state.starCores += 1;
+        saveProfile();
+        sfx.power();
+        return;
+      }
+      if (type === "shield") state.shield = shieldDuration();
+      if (type === "rapid") state.rapid = 8;
+      if (type === "slow") state.slow = slowDuration();
+      if (type === "dash") state.dash = 2.4;
+      if (type === "magnet") state.magnet = 11;
+      if (type === "double") state.doubleCrystals = 8;
+      addStat("powerups", 1);
+      state.combo += comboGain(1);
+      sfx.power();
+    }
+
+    function removeFrom(list, obj) {
+      const i = list.indexOf(obj);
+      if (i >= 0) list.splice(i, 1);
+      scene.remove(obj);
+      obj.traverse?.((child) => {
+        if (child.geometry && child !== obj) child.geometry.dispose?.();
+      });
+      obj.geometry?.dispose?.();
+    }
+
+    function resetGame() {
+      ensureAudio();
+      sfx.start();
+      document.body.classList.remove("menu-page");
+      document.getElementById("message").classList.remove("menu-page");
+      for (const list of [pools.hazards, pools.crystals, pools.enemies, pools.bullets, pools.enemyShots, pools.powerups]) {
+        while (list.length) removeFrom(list, list[0]);
+      }
+      Object.assign(state, {
+        running: true,
+        paused: false,
+        gameOver: false,
+        menu: "run",
+        lane: 1,
+        targetLane: 1,
+        jumpVel: 0,
+        y: 0,
+        slide: 0,
+        score: 0,
+        distance: 0,
+        crystals: 0,
+        starCores: 0,
+        combo: 1,
+        comboTimer: 0,
+        health: 3,
+        energy: 100,
+        speed: 31,
+        spawnMeter: 0,
+        spawnGap: 10,
+        rapid: 0,
+        shield: 0,
+        slow: 0,
+        dash: 0,
+        magnet: 0,
+        maxDashCharges: 1 + upgradeLevel("dashCapacity"),
+        dashCharges: 1 + upgradeLevel("dashCapacity"),
+        slidePose: 0,
+        isSliding: false,
+        colliderCenterY: .85,
+        colliderHeight: 1.7,
+        slideSparkTimer: 0,
+        emergencyShield: false,
+        doubleCrystals: 0,
+        comboSaver: false,
+        crystalBank: 0,
+        trailTick: 0,
+        shootCooldown: 0,
+        damageFlash: 0,
+        starCoreSpawned: false,
+        cameraShake: 0
+      });
+      state.health += upgradeLevel("startingHealth");
+      if (profile.selectedBoosts.shield && profile.boosts.shield > 0) { profile.boosts.shield -= 1; profile.selectedBoosts.shield = false; state.shield = 8; }
+      if (profile.selectedBoosts.rapid && profile.boosts.rapid > 0) { profile.boosts.rapid -= 1; profile.selectedBoosts.rapid = false; state.rapid = 8; }
+      if (profile.selectedBoosts.dash && profile.boosts.dash > 0) { profile.boosts.dash -= 1; profile.selectedBoosts.dash = false; state.dashCharges += 1; }
+      if (profile.selectedBoosts.slow && profile.boosts.slow > 0) { profile.boosts.slow -= 1; profile.selectedBoosts.slow = false; state.slow = slowDuration(); }
+      if (profile.selectedBoosts.magnet && profile.boosts.magnet > 0) { profile.boosts.magnet -= 1; profile.selectedBoosts.magnet = false; state.magnet = 12; }
+      if (profile.selectedBoosts.emergencyShield && profile.boosts.emergencyShield > 0) { profile.boosts.emergencyShield -= 1; profile.selectedBoosts.emergencyShield = false; state.emergencyShield = true; }
+      if (profile.selectedBoosts.doubleCrystals && profile.boosts.doubleCrystals > 0) { profile.boosts.doubleCrystals -= 1; profile.selectedBoosts.doubleCrystals = false; state.doubleCrystals = 8; }
+      if (profile.selectedBoosts.comboSaver && profile.boosts.comboSaver > 0) { profile.boosts.comboSaver -= 1; profile.selectedBoosts.comboSaver = false; state.comboSaver = true; }
+      saveProfile();
+      player.position.set(0, 0, 3.6);
+      player.userData.visual.position.copy(player.userData.visualBasePosition);
+      player.userData.visual.rotation.copy(player.userData.visualBaseRotation);
+      player.userData.board.position.copy(player.userData.boardBasePosition);
+      player.userData.board.rotation.copy(player.userData.boardBaseRotation);
+      player.userData.suit.rotation.set(0, 0, 0);
+      player.userData.suit.position.set(0, .04, 0);
+      player.userData.suit.position.z = 0;
+      for (const part of player.userData.slideParts) {
+        part.upperLeg.position.copy(part.legBase);
+        part.upperLeg.rotation.copy(part.legRot);
+        part.boot.position.copy(part.bootBase);
+        part.boot.rotation.copy(part.bootRot);
+        part.arm.position.copy(part.armBase);
+        part.arm.rotation.copy(part.armRot);
+        part.glove.position.copy(part.gloveBase);
+      }
+      for (let z = -34; z >= -146; z -= 16) spawnRow(z);
+      hideMenu();
+    }
+
+    function endGame() {
+      state.running = false;
+      state.paused = false;
+      state.gameOver = true;
+      state.menu = "gameover";
+      addStat("runs", 1);
+      addStat("distance", Math.floor(state.distance));
+      maxStat("bestDistance", Math.floor(state.distance));
+      maxStat("bestCombo", Math.floor(state.combo));
+      const milestone = Math.floor(state.distance / 1500);
+      if (milestone > (profile.lifetimeStats.coreMilestone || 0)) {
+        const gainedCores = Math.min(3, milestone - (profile.lifetimeStats.coreMilestone || 0));
+        profile.starCores = (profile.starCores || 0) + gainedCores;
+        profile.lifetimeStats.coreMilestone = milestone;
+      }
+      profile.highScore = Math.max(profile.highScore || 0, Math.floor(state.score));
+      saveProfile();
+      sfx.over();
+      showMenu("Run Complete", `Score ${Math.floor(state.score).toLocaleString()} - Distance ${Math.floor(state.distance)}m - Crystals ${state.crystals}`, "Click restart to jump back onto the starline.", {
+        start: "Restart",
+        resume: false,
+        main: true
+      });
+    }
+
+    function showMenu(title, lineOne, lineTwo, buttons) {
+      const msg = document.getElementById("message");
+      document.body.classList.toggle("menu-page", !!buttons.page);
+      msg.classList.toggle("menu-page", !!buttons.page);
+      msg.querySelector("h1").textContent = title;
+      msg.querySelector("p").textContent = lineOne;
+      msg.querySelectorAll("p")[1].textContent = lineTwo;
+      document.getElementById("resume").classList.toggle("hidden", !buttons.resume);
+      document.getElementById("mainMenu").classList.toggle("hidden", !buttons.main);
+      document.getElementById("shopTab").classList.toggle("hidden", !buttons.shop);
+      document.getElementById("loadoutTab").classList.toggle("hidden", !buttons.shop);
+      document.getElementById("missionsTab").classList.toggle("hidden", !buttons.shop);
+      document.getElementById("controlsTab").classList.toggle("hidden", !buttons.shop);
+      const start = document.getElementById("start");
+      start.textContent = buttons.start ?? "Start Run";
+      start.classList.toggle("hidden", buttons.start === false);
+      updateWalletUI();
+      renderShop();
+      renderLoadout();
+      renderMissions();
+      setMenuTab("play");
+      msg.classList.remove("hidden");
+    }
+
+    function hideMenu() {
+      document.body.classList.remove("menu-page");
+      document.getElementById("message").classList.remove("menu-page");
+      document.getElementById("message").classList.add("hidden");
+    }
+
+    function showMainMenu() {
+      state.running = false;
+      state.paused = false;
+      state.gameOver = false;
+      state.menu = "main";
+      player.visible = true;
+      stopHum();
+      const flavors = [
+        "Alien drones detected on the Starline.",
+        "Crystal cargo unstable. Keep moving.",
+        "Meteor field ahead. Weapons hot.",
+        "Colony signal fading. Survive the route."
+      ];
+      showMenu("Starline Run", flavors[Math.floor(Math.random() * flavors.length)], "Dodge fixed crates and laser gates, collect crystal trails, and shoot the bright flying drones before they reach you.", {
+        start: "Start Run",
+        resume: false,
+        main: false,
+        shop: true,
+        page: true
+      });
+      setMenuTab("play");
+    }
+
+    function setMenuTab(tab) {
+      if (tab === "shop" && state.menu !== "main") return;
+      if (tab === "loadout" && state.menu !== "main") return;
+      if (tab === "missions" && state.menu !== "main") return;
+      if (tab === "controls" && state.menu !== "main") return;
+      const shop = tab === "shop";
+      const loadout = tab === "loadout";
+      const missions = tab === "missions";
+      const controls = tab === "controls";
+      document.getElementById("playTab").classList.toggle("active", shop || loadout || missions || controls);
+      document.getElementById("playTab").classList.toggle("hidden", !shop && !loadout && !missions && !controls);
+      document.getElementById("shopTab").classList.toggle("active", shop);
+      document.getElementById("shopTab").classList.toggle("hidden", shop || loadout || missions || controls || state.menu !== "main");
+      document.getElementById("loadoutTab").classList.toggle("active", loadout);
+      document.getElementById("loadoutTab").classList.toggle("hidden", shop || loadout || missions || controls || state.menu !== "main");
+      document.getElementById("missionsTab").classList.toggle("active", missions);
+      document.getElementById("missionsTab").classList.toggle("hidden", shop || loadout || missions || controls || state.menu !== "main");
+      document.getElementById("controlsTab").classList.toggle("active", controls);
+      document.getElementById("controlsTab").classList.toggle("hidden", shop || loadout || missions || controls || state.menu !== "main");
+      document.getElementById("playPanel").classList.toggle("hidden", shop || loadout || missions || controls);
+      document.getElementById("shopPanel").classList.toggle("hidden", !shop);
+      document.getElementById("loadoutPanel").classList.toggle("hidden", !loadout);
+      document.getElementById("missionsPanel").classList.toggle("hidden", !missions);
+      document.getElementById("controlsPanel").classList.toggle("hidden", !controls);
+      document.getElementById("start").classList.toggle("hidden", shop || missions || controls);
+      document.getElementById("message").classList.toggle("shop-open", shop);
+      document.getElementById("message").classList.toggle("panel-open", loadout || missions || controls);
+      renderShop();
+      renderLoadout();
+      renderMissions();
+    }
+
+    function pauseGame() {
+      if (!state.running || state.gameOver || state.paused) return;
+      state.paused = true;
+      state.menu = "pause";
+      if (audio.humGain) audio.humGain.gain.value = .012;
+      showMenu("Paused", "The starline is holding position.", "Resume the run, restart from zero, or return to the main menu.", {
+        start: "Restart",
+        resume: true,
+        main: true,
+        shop: false
+      });
+    }
+
+    function resumeGame() {
+      if (!state.running || state.gameOver) return;
+      state.paused = false;
+      state.menu = "run";
+      if (audio.humGain) audio.humGain.gain.value = .035;
+      hideMenu();
+    }
+
+    function movePlayer(direction) {
+      if (state.paused || state.gameOver || !state.running) return;
+      if (direction === "left") { state.targetLane = Math.max(0, state.targetLane - 1); sfx.lane(); }
+      if (direction === "right") { state.targetLane = Math.min(2, state.targetLane + 1); sfx.lane(); }
+      if (direction === "up" && state.y <= .02 && !state.isSliding) { state.jumpVel = 10.4; sfx.jump(); }
+      if (direction === "down" && state.y <= .02 && !state.isSliding) {
+        state.slide = .78;
+        state.isSliding = true;
+        addStat("slides", 1);
+        sfx.slide();
+      }
+    }
+
+    function updateHUD() {
+      document.getElementById("score").textContent = Math.floor(state.score).toLocaleString();
+      document.getElementById("combo").textContent = `${Math.floor(state.combo)}x`;
+      document.getElementById("comboSmall").textContent = `${Math.floor(state.combo)}x`;
+      document.getElementById("crystals").textContent = state.crystals.toLocaleString();
+      document.getElementById("runStarCores").textContent = state.starCores.toLocaleString();
+      const energy = Math.max(0, Math.min(100, state.energy));
+      document.getElementById("energyFill").style.width = `${energy}%`;
+      document.getElementById("energyText").textContent = `${Math.floor(energy)}%`;
+      const activePowerups = document.getElementById("activePowerups");
+      const chips = [
+        ["Shield", state.shield, "#43e7ff"],
+        ["Rapid Fire", state.rapid, "#70ff22"],
+        ["Slow", state.slow, "#b26bff"],
+        ["Dash", state.dash, "#43e7ff"],
+        ["Magnet", state.magnet, "#20dfff"],
+        ["2x Crystals", state.doubleCrystals, "#d8ff56"]
+      ].filter((entry) => entry[1] > 0);
+      activePowerups.classList.toggle("hidden", chips.length === 0);
+      activePowerups.innerHTML = chips.map(([label, time, color]) => `<div class="power-chip" style="--chip:${color}">${label}${time < 900 ? ` ${Math.ceil(time)}s` : ""}</div>`).join("");
+      document.getElementById("level").textContent = Math.min(14, 1 + Math.floor(state.distance / 450));
+      const health = document.getElementById("health");
+      health.innerHTML = "";
+      for (let i = 0; i < 3 + upgradeLevel("startingHealth"); i++) {
+        const h = document.createElement("div");
+        h.className = `heart ${i < state.health ? "full" : ""}`;
+        health.appendChild(h);
+      }
+      const bars = document.getElementById("speedBars");
+      if (!bars.children.length) {
+        for (let i = 0; i < 15; i++) bars.appendChild(document.createElement("div")).className = "speed-bar";
+      }
+      const active = Math.min(15, Math.floor((state.speed - 25) / 2));
+      [...bars.children].forEach((bar, i) => bar.classList.toggle("on", i < active));
+    }
+
+    function collide(a, b, ax = .9, az = 1.05, ay = 1.25) {
+      const isPlayer = a === player.position;
+      const aCenterY = isPlayer ? a.y + state.colliderCenterY : a.y + .85;
+      const aHalfY = isPlayer ? state.colliderHeight * .5 : ay;
+      return Math.abs(a.x - b.x) < ax && Math.abs(a.z - b.z) < az && Math.abs(aCenterY - (b.y + .7)) < Math.max(.55, aHalfY + ay * .45);
+    }
+
+    function updateGame(dt) {
+      if (!state.running || state.paused) return;
+      const slowFactor = state.slow > 0 ? .58 : 1;
+      const dashBoost = state.dash > 0 ? 16 : 0;
+      const speed = (state.speed + dashBoost) * slowFactor;
+      state.distance += speed * dt;
+      state.score += speed * dt * (0.28 + state.combo * .045);
+      state.speed = Math.min(57, 31 + state.distance / 180);
+      if (audio.hum) audio.hum.frequency.setTargetAtTime(58 + Math.min(28, speed * .35), audio.ctx.currentTime, .08);
+      state.energy = Math.min(100, state.energy + (state.rapid > 0 ? 22 : 13) * (1 + upgradeLevel("weaponCooldown") * .12) * dt);
+      state.shootCooldown = Math.max(0, state.shootCooldown - dt);
+      state.rapid = Math.max(0, state.rapid - dt);
+      state.shield = Math.max(0, state.shield - dt);
+      state.slow = Math.max(0, state.slow - dt);
+      state.dash = Math.max(0, state.dash - dt);
+      state.magnet = Math.max(0, state.magnet - dt);
+      state.doubleCrystals = Math.max(0, state.doubleCrystals - dt);
+      state.damageFlash = Math.max(0, state.damageFlash - dt);
+      state.cameraShake = Math.max(0, state.cameraShake - dt);
+      state.trailTick += dt;
+      if (state.trailTick > .09) {
+        state.trailTick = 0;
+        spark(player.position.clone().add(new THREE.Vector3(0, .18, .7)), trailColor(), 3);
+      }
+      state.comboTimer += dt;
+      if (state.comboTimer > 4) {
+        state.combo = Math.max(1, state.combo - dt * .35);
+      }
+
+      for (const r of pools.road) {
+        r.position.z += speed * dt;
+        if (r.position.z > 34) r.position.z -= 34 * pools.road.length;
+      }
+
+      state.spawnMeter += speed * dt;
+      while (state.spawnMeter >= state.spawnGap) {
+        spawnRow(-176);
+        state.spawnMeter -= state.spawnGap;
+        const difficulty = Math.min(1, state.distance / 1800);
+        state.spawnGap = THREE.MathUtils.lerp(15, 10.5, difficulty) + Math.random() * 3;
+      }
+
+      const targetX = laneX[state.targetLane];
+      player.position.x = THREE.MathUtils.damp(player.position.x, targetX, 13, dt);
+      if (Math.abs(player.position.x - targetX) < .08) state.lane = state.targetLane;
+      if (state.jumpVel || state.y > 0) {
+        state.jumpVel -= 24 * dt;
+        state.y += state.jumpVel * dt;
+        if (state.y < 0) {
+          state.y = 0;
+          state.jumpVel = 0;
+        }
+      }
+      state.slide = Math.max(0, state.slide - dt);
+      player.position.y = state.y;
+      const slideTarget = state.slide > .2 && state.y <= .04 ? 1 : 0;
+      state.slidePose = THREE.MathUtils.damp(state.slidePose, slideTarget, slideTarget ? 30 : 20, dt);
+      const slidePose = state.slidePose;
+      state.colliderCenterY = THREE.MathUtils.lerp(.85, .34, slidePose);
+      state.colliderHeight = THREE.MathUtils.lerp(1.7, .78, slidePose);
+      const visual = player.userData.visual;
+      const visualBasePosition = player.userData.visualBasePosition;
+      const visualBaseRotation = player.userData.visualBaseRotation;
+      visual.position.y = THREE.MathUtils.damp(visual.position.y, visualBasePosition.y - slidePose * .58, 26, dt);
+      visual.position.z = THREE.MathUtils.damp(visual.position.z, visualBasePosition.z - slidePose * .24, 24, dt);
+      visual.rotation.x = THREE.MathUtils.damp(visual.rotation.x, visualBaseRotation.x + slidePose * .2, 22, dt);
+      const suit = player.userData.suit;
+      suit.rotation.x = THREE.MathUtils.damp(suit.rotation.x, slidePose * .24, 22, dt);
+      suit.rotation.y = THREE.MathUtils.damp(suit.rotation.y, -slidePose * .28, 22, dt);
+      suit.position.y = THREE.MathUtils.damp(suit.position.y, .04 - slidePose * .08, 22, dt);
+      suit.position.z = THREE.MathUtils.damp(suit.position.z, -slidePose * .22, 22, dt);
+      for (const part of player.userData.slideParts) {
+        const side = part.side;
+        part.upperLeg.position.x = THREE.MathUtils.damp(part.upperLeg.position.x, part.legBase.x + side * slidePose * .08, 22, dt);
+        part.upperLeg.position.y = THREE.MathUtils.damp(part.upperLeg.position.y, part.legBase.y - slidePose * .34, 22, dt);
+        part.upperLeg.position.z = THREE.MathUtils.damp(part.upperLeg.position.z, part.legBase.z - slidePose * .34, 22, dt);
+        part.upperLeg.rotation.x = THREE.MathUtils.damp(part.upperLeg.rotation.x, part.legRot.x + slidePose * 1.18, 22, dt);
+        part.upperLeg.rotation.z = THREE.MathUtils.damp(part.upperLeg.rotation.z, part.legRot.z + side * slidePose * .14, 22, dt);
+        part.boot.position.x = THREE.MathUtils.damp(part.boot.position.x, part.bootBase.x + side * slidePose * .05, 22, dt);
+        part.boot.position.y = THREE.MathUtils.damp(part.boot.position.y, part.bootBase.y + slidePose * .62, 22, dt);
+        part.boot.position.z = THREE.MathUtils.damp(part.boot.position.z, part.bootBase.z + slidePose * .12, 22, dt);
+        part.boot.rotation.x = THREE.MathUtils.damp(part.boot.rotation.x, part.bootRot.x - slidePose * .42, 22, dt);
+        part.arm.position.x = THREE.MathUtils.damp(part.arm.position.x, part.armBase.x, 18, dt);
+        part.arm.position.y = THREE.MathUtils.damp(part.arm.position.y, part.armBase.y - slidePose * .18, 22, dt);
+        part.arm.position.z = THREE.MathUtils.damp(part.arm.position.z, part.armBase.z - slidePose * .34, 22, dt);
+        part.arm.rotation.x = THREE.MathUtils.damp(part.arm.rotation.x, part.armRot.x + slidePose * .62, 22, dt);
+        part.arm.rotation.z = THREE.MathUtils.damp(part.arm.rotation.z, part.armRot.z - side * slidePose * .18, 22, dt);
+        part.glove.position.x = THREE.MathUtils.damp(part.glove.position.x, part.gloveBase.x, 18, dt);
+        part.glove.position.y = THREE.MathUtils.damp(part.glove.position.y, part.gloveBase.y - slidePose * .24, 22, dt);
+        part.glove.position.z = THREE.MathUtils.damp(part.glove.position.z, part.gloveBase.z - slidePose * .4, 22, dt);
+      }
+      if (state.slide <= 0 && slidePose < .04) {
+        state.isSliding = false;
+        visual.position.copy(visualBasePosition);
+        visual.rotation.copy(visualBaseRotation);
+        player.userData.board.position.copy(player.userData.boardBasePosition);
+        player.userData.board.rotation.copy(player.userData.boardBaseRotation);
+        suit.rotation.set(0, 0, 0);
+        suit.position.set(0, .04, 0);
+        for (const part of player.userData.slideParts) {
+          part.upperLeg.position.copy(part.legBase);
+          part.upperLeg.rotation.copy(part.legRot);
+          part.boot.position.copy(part.bootBase);
+          part.boot.rotation.copy(part.bootRot);
+          part.arm.position.copy(part.armBase);
+          part.arm.rotation.copy(part.armRot);
+          part.glove.position.copy(part.gloveBase);
+        }
+        state.colliderCenterY = .85;
+        state.colliderHeight = 1.7;
+      }
+      if (slidePose > .35) {
+        state.slideSparkTimer += dt;
+        if (state.slideSparkTimer > .055) {
+          state.slideSparkTimer = 0;
+          spark(player.position.clone().add(new THREE.Vector3((Math.random() - .5) * .8, .08, .95)), 0x43e7ff, 3);
+        }
+      } else {
+        state.slideSparkTimer = 0;
+      }
+      const boardBasePosition = player.userData.boardBasePosition;
+      const boardBaseRotation = player.userData.boardBaseRotation;
+      player.userData.board.position.y = THREE.MathUtils.damp(player.userData.board.position.y, boardBasePosition.y + slidePose * .58, 18, dt);
+      player.userData.board.position.z = THREE.MathUtils.damp(player.userData.board.position.z, boardBasePosition.z + slidePose * .24, 18, dt);
+      player.userData.board.rotation.x = THREE.MathUtils.damp(player.userData.board.rotation.x, boardBaseRotation.x - visual.rotation.x + Math.sin(performance.now() * .012) * .01, 14, dt);
+      player.userData.board.rotation.y = THREE.MathUtils.damp(player.userData.board.rotation.y, boardBaseRotation.y, 14, dt);
+      player.rotation.z = THREE.MathUtils.damp(player.rotation.z, (targetX - player.position.x) * -.08, 10, dt);
+      player.userData.shield.visible = state.shield > 0;
+      player.userData.magnetField.visible = state.magnet > 0;
+      player.userData.magnetField.scale.setScalar(1 + Math.sin(performance.now() * .008) * .08);
+      player.visible = state.damageFlash <= 0 || Math.sin(performance.now() * .04) > -.2;
+
+      camera.position.x = THREE.MathUtils.damp(camera.position.x, player.position.x * .2, 3, dt);
+      camera.position.y = THREE.MathUtils.damp(camera.position.y, 8.7 + state.y * .22, 4, dt);
+      camera.position.z = THREE.MathUtils.damp(camera.position.z, 15.3, 4, dt);
+      if (state.cameraShake > 0) {
+        camera.position.x += (Math.random() - .5) * state.cameraShake * .35;
+        camera.position.y += (Math.random() - .5) * state.cameraShake * .22;
+      }
+      camera.lookAt(player.position.x * .18, 1.3, -18);
+
+      for (const list of [pools.hazards, pools.crystals, pools.enemies, pools.powerups]) {
+        for (let i = list.length - 1; i >= 0; i--) {
+          const o = list[i];
+          const meteorDrift = list === pools.hazards && (o.userData.type === "meteor" || o.userData.type === "asteroid");
+          o.position.z += speed * (meteorDrift ? .5 : 1) * dt;
+          if (list === pools.crystals) o.rotation.y += dt * 2.2;
+          if (o.userData.type === "meteor" || o.userData.type === "asteroid") {
+            o.position.x += Math.sin(performance.now() * .001 + o.position.z) * dt * .5;
+          }
+          if (o.position.z > 12) removeFrom(list, o);
+        }
+      }
+
+      for (let i = pools.crystals.length - 1; i >= 0; i--) {
+        const c = pools.crystals[i];
+        const playerLane = nearestLaneIndex(player.position.x);
+        const crystalLane = nearestLaneIndex(c.position.x);
+        const laneDelta = Math.abs(playerLane - crystalLane);
+        const zDelta = Math.abs(c.position.z - player.position.z);
+        const laneReach = magnetLaneReach();
+        if (state.magnet > 0) {
+          const target = player.position.clone().add(new THREE.Vector3(0, 1.05, 0));
+          if (laneDelta <= laneReach && zDelta < magnetRange()) {
+            c.position.lerp(target, Math.min(1, dt * (5.5 + upgradeLevel("magnetRange") * 1.2)));
+          }
+        }
+        const jumpCatch = Math.abs(player.position.x - c.position.x) < 1.15 && zDelta < 1.45 && player.position.y < 4.2;
+        const magnetCatch = state.magnet > 0 && laneDelta <= laneReach && zDelta < 1.75;
+        if (collide(player.position, c.position, 1.05, 1.3, 2.9) || jumpCatch || magnetCatch) collectCrystal(c);
+      }
+
+      for (let i = pools.powerups.length - 1; i >= 0; i--) {
+        const p = pools.powerups[i];
+        if (collide(player.position, p.position, 1.1, 1.3, 1.6)) {
+          collectPower(p.userData.type);
+          spark(p.position, p.userData.type === "starcore" ? 0x9d77ff : 0x72ff7b, 18);
+          removeFrom(pools.powerups, p);
+        }
+      }
+
+      for (let i = pools.hazards.length - 1; i >= 0; i--) {
+        const h = pools.hazards[i];
+        if (h.userData.type === "jumpPad" && collide(player.position, h.position, 1.35, 1.35, .65)) {
+          state.jumpVel = Math.max(state.jumpVel, 13.6);
+          spark(h.position.clone().add(new THREE.Vector3(0, .5, 0)), 0x7dff6a, 16);
+          removeFrom(pools.hazards, h);
+          continue;
+        }
+        if (h.userData.type === "ramp" && collide(player.position, h.position, 1.35, 1.35, .65)) {
+          state.jumpVel = Math.max(state.jumpVel, 8.6);
+          spark(h.position.clone().add(new THREE.Vector3(0, .5, 0)), 0x43e7ff, 12);
+          removeFrom(pools.hazards, h);
+          continue;
+        }
+        const laserWallHit = h.userData.type === "laser" && Math.abs(player.position.x - h.position.x) < 1.35 && Math.abs(player.position.z - h.position.z) < 1.3;
+        if (laserWallHit || collide(player.position, h.position, 1.35, 1.3, h.userData.type === "lowLaser" ? .85 : 1.35)) {
+          const canAvoid = h.userData.type === "lowLaser" && state.slidePose > .45;
+          const canJump = (h.userData.type === "crate" || h.userData.type === "asteroid" || h.userData.type === "gap") && state.y > 1.05;
+          if (!canAvoid && !canJump) {
+            hitPlayer();
+            removeFrom(pools.hazards, h);
+          }
+        }
+      }
+
+      for (let i = pools.enemies.length - 1; i >= 0; i--) {
+        const e = pools.enemies[i];
+        if (e.userData.type === "turret") {
+          e.lookAt(player.position.x, player.position.y + 1.0, player.position.z);
+          e.userData.fire -= dt;
+          const inRange = e.position.z < player.position.z - 5 && e.position.z > player.position.z - 72;
+          if (inRange && e.userData.fire <= 0) {
+            fireTurret(e);
+            e.userData.fire = 1.05 + Math.random() * .65;
+          }
+        } else if (!e.userData.passedPlayer) {
+          const t = performance.now() * .001 + e.userData.phase;
+          const targetX = player.position.x + Math.sin(t * (1.2 + e.userData.steer * .18)) * e.userData.weave;
+          const targetY = player.position.y + 1.25 + Math.sin(t * 1.7) * e.userData.bob;
+          e.position.x = THREE.MathUtils.damp(e.position.x, targetX, e.userData.steer, dt);
+          e.position.y = THREE.MathUtils.damp(e.position.y, targetY, e.userData.steer * .62, dt);
+          e.position.z += e.userData.closeSpeed * dt;
+          if (e.position.z > player.position.z + 1.5) e.userData.passedPlayer = true;
+          e.lookAt(player.position.x, player.position.y + 1.1, player.position.z);
+        }
+        if (collide(player.position, e.position, 1.2, 1.2, 1.8)) {
+          hitPlayer();
+          removeFrom(pools.enemies, e);
+        }
+      }
+
+      for (let i = pools.bullets.length - 1; i >= 0; i--) {
+        const b = pools.bullets[i];
+        b.position.addScaledVector(b.userData.vel, dt);
+        b.userData.life -= dt;
+        let spent = b.userData.life <= 0;
+        if (!spent) {
+          for (let j = pools.enemies.length - 1; j >= 0; j--) {
+            const e = pools.enemies[j];
+            if (b.position.distanceTo(e.position) < 1.25) {
+              e.userData.hp -= 1;
+              burst(e.position, 0x9dff60, e.userData.hp <= 0 ? 28 : 14);
+              if (e.userData.hp <= 0) {
+                sfx.enemy();
+                burst(e.position, 0x43e7ff, e.userData.type === "ship" ? 34 : 24);
+                debrisBurst(e.position, 0x7dff6a, e.userData.type === "ship" ? 8 : 4);
+                scorePopup(e.position, `+${Math.floor(85 * state.combo)}`, "#d8ff56");
+                if (e.userData.type === "ship") state.cameraShake = Math.max(state.cameraShake, .18);
+                state.score += 85 * state.combo;
+                state.combo += comboGain(1);
+                addStat("enemies", 1);
+                maxStat("bestCombo", Math.floor(state.combo));
+                state.comboTimer = 0;
+                removeFrom(pools.enemies, e);
+              }
+              spent = true;
+              break;
+            }
+          }
+        }
+        if (!spent) {
+          for (let j = pools.hazards.length - 1; j >= 0; j--) {
+            const h = pools.hazards[j];
+            if ((h.userData.type === "meteor" || h.userData.type === "asteroid") && b.position.distanceTo(h.position) < 1.15) {
+              burst(h.position, 0x7dff6a, 30);
+              debrisBurst(h.position, 0x7dff6a, 7);
+              scorePopup(h.position, `+${Math.floor(35 * state.combo)}`, "#7dff6a");
+              state.cameraShake = Math.max(state.cameraShake, .14);
+              state.score += 35 * state.combo;
+              addStat("meteors", 1);
+              removeFrom(pools.hazards, h);
+              spent = true;
+              break;
+            }
+          }
+        }
+        if (spent) removeFrom(pools.bullets, b);
+      }
+
+      for (let i = pools.enemyShots.length - 1; i >= 0; i--) {
+        const s = pools.enemyShots[i];
+        s.position.addScaledVector(s.userData.vel, dt);
+        s.userData.life -= dt;
+        if (s.userData.life <= 0) removeFrom(pools.enemyShots, s);
+        else if (s.position.distanceTo(player.position.clone().add(new THREE.Vector3(0, 1, 0))) < .9) {
+          hitPlayer();
+          removeFrom(pools.enemyShots, s);
+        }
+      }
+    }
+
+    function updateBackground(dt) {
+      for (const p of planets) p.rotation.y += dt * .018;
+      for (const s of stations) {
+        s.rotation.y += dt * .08;
+        s.position.z += (state.running && !state.paused ? state.speed * .045 : .5) * dt;
+        if (s.position.z > -60) s.position.z -= 190;
+      }
+      for (const ship of bgShips) {
+        ship.position.z += (state.running && !state.paused ? state.speed * .08 : 1.2) * dt;
+        ship.position.x += Math.sin(performance.now() * .00045 + ship.position.y) * dt * .8;
+        if (ship.position.z > -45) ship.position.z -= 235;
+      }
+      for (let i = pools.particles.length - 1; i >= 0; i--) {
+        const p = pools.particles[i];
+        if (p.userData.life !== undefined) {
+          p.userData.life -= dt;
+          p.position.addScaledVector(p.userData.vel, dt);
+          p.material.opacity = Math.max(0, p.userData.life * 2.7);
+          if (p.userData.life <= 0) removeFrom(pools.particles, p);
+        } else {
+          p.rotation.x += p.userData.spin.x * dt;
+          p.rotation.y += p.userData.spin.y * dt;
+          p.position.z += (state.running && !state.paused ? state.speed * .12 : .8) * dt;
+          if (p.position.z > 35) p.position.z -= 280;
+        }
+      }
+    }
+
+    function animate() {
+      const dt = Math.min(clock.getDelta(), .033);
+      updateGame(dt);
+      updateBackground(dt);
+      updateHUD();
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+
+    addEventListener("resize", () => {
+      renderer.setSize(innerWidth, innerHeight);
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+    });
+
+    addEventListener("keydown", (e) => {
+      if (["Escape", "KeyP"].includes(e.code)) {
+        if (state.paused) resumeGame();
+        else pauseGame();
+        return;
+      }
+      if (state.paused || state.gameOver || !state.running) return;
+      if (["ArrowLeft", "KeyA"].includes(e.code)) movePlayer("left");
+      if (["ArrowRight", "KeyD"].includes(e.code)) movePlayer("right");
+      if (["Space", "ArrowUp", "KeyW"].includes(e.code)) movePlayer("up");
+      if (["ArrowDown", "KeyS"].includes(e.code)) movePlayer("down");
+      if ((e.code === "ShiftLeft" || e.code === "ShiftRight") && state.dashCharges > 0 && state.dash <= 0) {
+        state.dashCharges -= 1;
+        state.dash = 1.2;
+        sfx.power();
+      }
+      if (e.code === "KeyF") shoot();
+    });
+
+    addEventListener("pointermove", (e) => {
+      pointer.x = (e.clientX / innerWidth) * 2 - 1;
+      pointer.y = -(e.clientY / innerHeight) * 2 + 1;
+      reticle.style.left = `${e.clientX}px`;
+      reticle.style.top = `${e.clientY}px`;
+    });
+    addEventListener("pointerdown", (e) => {
+      if (e.target.closest("#message")) return;
+      shoot();
+    });
+    document.getElementById("message").addEventListener("pointerdown", (e) => e.stopPropagation());
+    document.getElementById("start").addEventListener("click", resetGame);
+    document.getElementById("resume").addEventListener("click", resumeGame);
+    document.getElementById("mainMenu").addEventListener("click", showMainMenu);
+    document.getElementById("playTab").addEventListener("click", () => setMenuTab("play"));
+    document.getElementById("loadoutBack").addEventListener("click", () => setMenuTab("play"));
+    document.getElementById("missionsBack").addEventListener("click", () => setMenuTab("play"));
+    document.getElementById("controlsBack").addEventListener("click", () => setMenuTab("play"));
+    document.getElementById("shopTab").addEventListener("click", () => setMenuTab("shop"));
+    document.getElementById("loadoutTab").addEventListener("click", () => setMenuTab("loadout"));
+    document.getElementById("missionsTab").addEventListener("click", () => setMenuTab("missions"));
+    document.getElementById("controlsTab").addEventListener("click", () => setMenuTab("controls"));
+    document.getElementById("shopGrid").addEventListener("click", (e) => {
+      const button = e.target.closest("[data-shop-id]");
+      if (button) buyOrEquip(button.dataset.shopId);
+    });
+    document.getElementById("loadoutGrid").addEventListener("click", (e) => {
+      const button = e.target.closest("[data-loadout-boost]");
+      if (button) toggleLoadoutBoost(button.dataset.loadoutBoost);
+    });
+    document.getElementById("missionList").addEventListener("click", (e) => {
+      const button = e.target.closest("[data-claim-mission]");
+      if (button) claimMission(button.dataset.claimMission);
+    });
+    document.querySelectorAll("[data-mission-tab]").forEach((button) => {
+      button.addEventListener("click", () => {
+        activeMissionTab = button.dataset.missionTab;
+        renderMissions();
+      });
+    });
+    document.querySelectorAll(".shop-filter").forEach((button) => {
+      button.addEventListener("click", () => {
+        activeShopCategory = button.dataset.shopCategory;
+        renderShop();
+      });
+    });
+    document.querySelectorAll(".dir-button").forEach((button) => {
+      button.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        movePlayer(button.dataset.move);
+      });
+    });
+
+    setInterval(() => {
+      const countdown = document.getElementById("dailyCountdown");
+      if (!countdown || activeMissionTab !== "daily" || countdown.classList.contains("hidden")) return;
+      countdown.textContent = `Daily missions reset in ${dailyResetCountdown()}`;
+      ensureDailyMissions();
+    }, 1000);
+
+    showMainMenu();
+    updateHUD();
+    animate();
+    if (new URLSearchParams(location.search).get("autostart") === "1") resetGame();
+  </script>
+</body>
+</html>
