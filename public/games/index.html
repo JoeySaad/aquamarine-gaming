@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Games - Aquamarine Gaming</title>
+  <link rel="stylesheet" href="../assets/site-pages.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="../index.html" aria-label="Aquamarine Gaming home">
+      <img src="../assets/title-logo-transparent.png" alt="Aquamarine Gaming">
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="../games/index.html" aria-current="page">Games</a>
+      <a href="../about/index.html">About</a>
+      <a href="../contact/index.html">Contact</a>
+      <a href="../privacy/index.html">Privacy</a>
+      <a href="../terms/index.html">Terms</a>
+    </nav>
+  </header>
+
+  <main class="page-main">
+    <section class="hero">
+      <p class="eyebrow">Library</p>
+      <h1>Play <span>Instantly</span></h1>
+      <p class="subtitle">Choose a game and jump straight into the Aquamarine arcade.</p>
+    </section>
+
+    <section class="games-grid" aria-label="Aquamarine games">
+      <button class="game-card" data-game="penalty-rush">
+        <img src="../assets/penalty-rush-logo.png" alt="">
+        <div class="game-card-body"><h2>Penalty Rush</h2><p>Pick a country and chase the shootout cup.</p></div>
+      </button>
+      <button class="game-card" data-game="starline-run">
+        <img src="../assets/starline-run-logo.png" alt="">
+        <div class="game-card-body"><h2>Starline Run</h2><p>Run the neon starline and survive.</p></div>
+      </button>
+      <button class="game-card" data-game="hyperball">
+        <img src="../assets/hyperball-logo.png" alt="">
+        <div class="game-card-body"><h2>HyperBall</h2><p>Classic arcade sports, recharged.</p></div>
+      </button>
+      <button class="game-card" data-game="merge-labs">
+        <img class="logo-merge" src="../assets/merge-labs-logo.png" alt="">
+        <div class="game-card-body"><h2>Merge Labs</h2><p>Drop, merge, and discover new objects.</p></div>
+      </button>
+    </section>
+  </main>
+
+  <section class="modal" id="gameModal" aria-label="Game player">
+    <div class="modal-bar">
+      <div class="modal-title" id="modalTitle">Game</div>
+      <div class="modal-actions">
+        <button id="fullButton" type="button">Fullscreen</button>
+        <button id="closeButton" type="button">Close</button>
+      </div>
+    </div>
+    <iframe id="gameFrame" title="Game player" allow="fullscreen; gamepad; autoplay"></iframe>
+  </section>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 Aquamarine Gaming. All rights reserved.</p>
+  </footer>
+
+  <script>
+    const games = {
+      "penalty-rush": { title: "Penalty Rush", url: "../play/penalty-rush-latest/index.html" },
+      "starline-run": { title: "Starline Run", url: "../play/starline-run/index.html" },
+      "hyperball": { title: "HyperBall", url: "../play/hyperball/index.html" },
+      "merge-labs": { title: "Merge Labs", url: "../play/merge-labs/index.html" }
+    };
+
+    const modal = document.getElementById("gameModal");
+    const frame = document.getElementById("gameFrame");
+    const title = document.getElementById("modalTitle");
+
+    document.querySelectorAll("[data-game]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const game = games[button.dataset.game];
+        title.textContent = game.title;
+        frame.src = `${game.url}?v=${Date.now()}`;
+        modal.classList.add("open");
+        document.body.style.overflow = "hidden";
+      });
+    });
+
+    document.getElementById("closeButton").addEventListener("click", async () => {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen().catch(() => {});
+      }
+      modal.classList.remove("open");
+      frame.src = "about:blank";
+      document.body.style.overflow = "";
+    });
+
+    document.getElementById("fullButton").addEventListener("click", async () => {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        return;
+      }
+      await modal.requestFullscreen();
+    });
+  </script>
+</body>
+</html>
